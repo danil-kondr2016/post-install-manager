@@ -103,6 +103,12 @@ HRESULT ExecuteArgcArgv(int argc, char **argv, DWORD *Status)
 	else if (xstricmp(argv[0], "RunIfArchIsX64") == 0) {
 		result = RunIfArchIs(ARCH_X64, argc - 1, argv + 1, Status);
 	}
+	else if (xstricmp(argv[0], "RunIfArchIsARM64") == 0) {
+		result = RunIfArchIs(ARCH_ARM64, argc - 1, argv + 1, Status);
+	}
+	else if (xstricmp(argv[0], "Skip") == 0) {
+		result = S_OK;
+	}
 	else {
 		result = RunExecutable(argc, argv, Status);
 	}
