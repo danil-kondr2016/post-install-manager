@@ -248,9 +248,9 @@ static HRESULT RunIfArchIs(int arch, int argc, char **argv, DWORD *Status)
 
 	native_arch = TestArch();
 	if (native_arch != ARCH_UNKNOWN && arch != native_arch)
-		return S_SKIP_COMMAND;
+		return WPIW_S_SKIP_COMMAND;
 	if (native_arch == ARCH_UNKNOWN)
-		return E_COMMAND_ERROR;
+		return WPIW_E_COMMAND_ERROR;
 
 	return ExecuteArgcArgv(argc, argv, Status);
 }
