@@ -347,6 +347,18 @@ static HRESULT CommandIf(char *CommandLine, DWORD *Status)
 
 		values = sdssplitlen(argument, sdslen(argument), ",", 1, &count);
 		for (i = 0; i < count; i++) {
+			if (values[i])
+				sdstrim(values[i], " \t\r\n");
+			if (sdslen(values[i]) == 0) {
+				sdsfree(values[i]);
+				values[i] = NULL;
+			}
+		}
+
+		for (i = 0; i < count; i++) {
+			if (values[i] == NULL)
+				continue;
+
 			int arch = ARCH_UNKNOWN;
 			if (!possible_arches[ARCH_X86] && xstricmp(values[i], "X86") == 0) {
 				possible_arches[ARCH_X86]++;
