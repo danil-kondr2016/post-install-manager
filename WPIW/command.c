@@ -17,6 +17,7 @@ enum
 	ARCH_X86,
 	ARCH_X64,
 	ARCH_ARM64,
+	ARCH_COUNT,
 };
 
 static int xstricmp(const char *a, const char *b)
@@ -53,15 +54,82 @@ static int xwcsicmp(const wchar_t *a, const wchar_t *b)
 }
 
 static int TestArch(void);
-static HRESULT RunExecutable(int argc, char **argv, DWORD *Status);
-static HRESULT RunIfArchIs(int arch, int argc, char **argv, DWORD *Status);
+static HRESULT RunExecutable(char *CommandLine, DWORD *Status);
+static HRESULT RunIfArchIs(int arch, char *CommandLine, DWORD *Status);
+static HRESULT CommandIf(char *CommandLine, DWORD *Status);
+
+sds NextToken(char *CommandLine, size_t *pos)
+{
+	sds result;
+	size_t length;
+	char *p;
+
+	assert(pos);
+	result = sdsempty();
+	length = strlen(CommandLine);
+
+	if (*pos >= length)
+		goto exit_fn;
+
+	p = CommandLine + (*pos);
+	while (*p && isspace(*p)) p++;
+	if (*p) {
+		int in_quotes = 0;
+		int done = 0;
+		while (!done) {
+			if (in_quotes) {
+				if (p[0] == '\\' && p[1]) {
+					p++;
+					result = sdscatlen(result, p, 1);
+				}
+				else if (*p == '"') {
+					if (p[1] && !isspace(p[1]))
+						goto error;
+					done = 1;
+				}
+				else if (!*p) {
+					goto error;
+				}
+				else {
+					result = sdscatlen(result, p, 1);
+				}
+			}
+			else {
+				switch (*p) {
+				case ' ':
+				case '\t':
+				case '\r':
+				case '\n':
+				case '\0':
+					done = 1;
+					break;
+				case '"':
+					in_quotes = 1;
+					break;
+				default:
+					result = sdscatlen(result, p, 1);
+					break;
+				}
+			}
+			if (*p) p++;
+		}
+	}
+	
+	*pos = p - CommandLine;
+
+exit_fn:
+	return result;
+error:
+	sdsfree(result);
+	return NULL;
+}
 
 HRESULT ExecuteCommand(char *CommandLine, DWORD *Status)
 {
-	int argc;
-	sds *argv;
 	HRESULT result = S_OK;
-	
+	sds command;
+	size_t pos = 0;
+
 	if (!Status)
 		return E_POINTER;
 	*Status = 0;
@@ -71,48 +139,19 @@ HRESULT ExecuteCommand(char *CommandLine, DWORD *Status)
 	if (!*CommandLine)
 		return S_FALSE;
 
-	argv = sdssplitargs(CommandLine, &argc);
-	if (!argv)
-		return E_OUTOFMEMORY;
-	if (argc == 0)
-		goto cleanup;
-
-	result = ExecuteArgcArgv(argc, argv, Status);
-
-cleanup:
-	sdsfreesplitres(argv, argc);
-	return result;
-}
-
-HRESULT ExecuteArgcArgv(int argc, char **argv, DWORD *Status)
-{
-	HRESULT result = S_OK;
-
-	if (!Status)
-		return E_POINTER;
-	*Status = 0;
-
-	if (!argv)
-		return S_FALSE;
-	if (argc == 0)
-		return S_FALSE;
-
-	if (xstricmp(argv[0], "RunIfArchIsX86") == 0) {
-		result = RunIfArchIs(ARCH_X86, argc - 1, argv + 1, Status);
+	command = NextToken(CommandLine, &pos);
+	if (xstricmp(command, "Run") == 0) {
+		result = RunExecutable(CommandLine + pos, Status);
 	}
-	else if (xstricmp(argv[0], "RunIfArchIsX64") == 0) {
-		result = RunIfArchIs(ARCH_X64, argc - 1, argv + 1, Status);
-	}
-	else if (xstricmp(argv[0], "RunIfArchIsARM64") == 0) {
-		result = RunIfArchIs(ARCH_ARM64, argc - 1, argv + 1, Status);
-	}
-	else if (xstricmp(argv[0], "Skip") == 0) {
-		result = S_OK;
+	else if (xstricmp(command, "If") == 0) {
+		result = CommandIf(CommandLine + pos, Status);
 	}
 	else {
-		result = RunExecutable(argc, argv, Status);
+		result = WPIW_E_COMMAND_NOT_FOUND;
 	}
 
+	if (command) 
+		sdsfree(command);
 	return result;
 }
 
@@ -149,79 +188,97 @@ static LPWSTR UTF8ToWideCharAlloc(char *source)
 	return result;
 }
 
-static LPWSTR ArgvToCommandLine(int argc, char **argv)
+static int SplitCommand(LPWSTR FullCommand, LPWSTR *FileName, LPWSTR *CommandLine)
 {
-	sds commandLine = NULL;
-	int i;
-	LPWSTR result = NULL;
-	DWORD resultSize;
+	WCHAR *p;
 
-	if (!argv || argc == 0) {
-		result = (LPWSTR)calloc(1, sizeof(WCHAR));
-		return result;
+	assert(FileName);
+	assert(CommandLine);
+
+	p = FullCommand;
+	while (*p && iswspace(*p)) p++;
+	if (*p) {
+		int in_quotes = 0;
+		int done = 0;
+		while (!done) {
+			if (in_quotes) {
+				if (p[0] == L'\\' && p[1]) {
+					p++;
+				}
+				else if (*p == L'"') {
+					if (p[1] && !iswspace(p[1]))
+						goto error;
+					done = 1;
+					p++;
+				}
+				else if (!*p) {
+					goto error;
+				}
+				else {
+					p++;
+				}
+			}
+			else {
+				switch (*p) {
+				case L' ':
+				case L'\t':
+				case L'\r':
+				case L'\n':
+				case L'\0':
+					done = 1;
+					break;
+				case '"':
+					in_quotes = 1;
+					p++;
+					break;
+				default:
+					p++;
+				}
+			}
+		}
 	}
 
-	commandLine = sdsnew("");
-	if (!commandLine)
-		return NULL;
+	while (*p && iswspace(*p)) *p++ = '\0';
+	*FileName = FullCommand;
+	*CommandLine = p;
 
-	for (i = 0; i < argc; i++) {
-		if (strchr(argv[i], ' ') || strchr(argv[i], '"'))
-			commandLine = sdscatrepr(commandLine, argv[i], strlen(argv[i]));
-		else
-			commandLine = sdscat(commandLine, argv[i]);
-		commandLine = sdscat(commandLine, " ");
-	}
-
-	if (!commandLine)
-		return NULL;
-
-	resultSize = MultiByteToWideChar(CP_UTF8, 0, commandLine, -1, NULL, 0);
-	result = (LPWSTR)calloc(resultSize, sizeof(WCHAR));
-	if (!result) {
-		goto cleanup;
-	}
-	MultiByteToWideChar(CP_UTF8, 0, commandLine, -1, result, resultSize);
-
-cleanup:
-	sdsfree(commandLine);
-	return result;
+	return 1;
+error:
+	return 0;
 }
 
-static HRESULT RunExecutable(int argc, char **argv, DWORD *Status)
+static HRESULT RunExecutable(char *CommandLine, DWORD *Status)
 {
-	LPWSTR absolutePath, commandLine;
+	LPWSTR fullCommandLine, fileName, commandLine;
 	SHELLEXECUTEINFOW shellExecuteInfo = { 0 };
 	HRESULT result = 0;
 
 	assert(Status);
 	*Status = 0;
-	if (!argv)
+	if (!CommandLine)
 		return S_OK;
-	if (argc == 0)
+	if (!*CommandLine)
 		return S_OK;
 
 	shellExecuteInfo.cbSize = sizeof(shellExecuteInfo);
 
-	absolutePath = UTF8ToWideCharAlloc(argv[0]);
-	if (!absolutePath) {
+	fullCommandLine = UTF8ToWideCharAlloc(CommandLine);
+	if (!fullCommandLine) {
 		result = E_OUTOFMEMORY;
 		goto exit_fn;
 	}
 
-	commandLine = ArgvToCommandLine(argc - 1, argv + 1);
-	if (!commandLine)
-		return E_OUTOFMEMORY;
+	SplitCommand(fullCommandLine, &fileName, &commandLine);
 	
 	shellExecuteInfo.fMask = SEE_MASK_DOENVSUBST | SEE_MASK_NOCLOSEPROCESS | SEE_MASK_FLAG_NO_UI;
 	shellExecuteInfo.lpVerb = L"open";
-	shellExecuteInfo.lpFile = absolutePath;
+	shellExecuteInfo.lpFile = fileName;
 	shellExecuteInfo.lpParameters = commandLine;
 	shellExecuteInfo.nShow = SW_SHOW;
 
 	if (!ShellExecuteExW(&shellExecuteInfo))  {
 		result = HRESULT_FROM_WIN32(GetLastError());
-		goto cleanup2;
+		goto cleanup1;
 	}
 
 	if (!shellExecuteInfo.hProcess || WAIT_FAILED == WaitForSingleObject(shellExecuteInfo.hProcess, INFINITE)) {
@@ -231,26 +288,106 @@ static HRESULT RunExecutable(int argc, char **argv, DWORD *Status)
 		GetExitCodeProcess(shellExecuteInfo.hProcess, Status);
 	}
 
-cleanup2:
-	free(commandLine);
 cleanup1:
-	free(absolutePath);
+	free(fullCommandLine);
 exit_fn:
 	return result;
 }
 
-static HRESULT RunIfArchIs(int arch, int argc, char **argv, DWORD *Status)
+static HRESULT RunIfArchIs(int arch, char *CommandLine, DWORD *Status)
 {
 	int native_arch;
+	HRESULT result;
 
 	assert(Status);
 	*Status = 0;
 
+	if (arch == ARCH_UNKNOWN)
+		return S_FALSE;
+
 	native_arch = TestArch();
 	if (native_arch != ARCH_UNKNOWN && arch != native_arch)
-		return WPIW_S_SKIP_COMMAND;
+		result = WPIW_S_SKIP_COMMAND;
 	if (native_arch == ARCH_UNKNOWN)
-		return WPIW_E_COMMAND_ERROR;
+		result = WPIW_E_FAILED_TO_EXECUTE;
 
-	return ExecuteArgcArgv(argc, argv, Status);
+	result = ExecuteCommand(CommandLine, Status);
+	return result;
+}
+
+static HRESULT CommandIf(char *CommandLine, DWORD *Status)
+{
+	sds argument = NULL;
+	size_t pos = 0;
+	HRESULT result = S_OK;
+
+	argument = NextToken(CommandLine, &pos);
+	if (xstricmp(argument, "Arch") == 0) {
+		sds *values;
+		sds arg2;
+		int count, i;
+		char possible_arches[ARCH_COUNT] = { 0 };
+
+		sdsfree(argument);
+		argument = NextToken(CommandLine, &pos);
+		sdstrim(argument, " \t\r\n");
+
+		do {
+			arg2 = NextToken(CommandLine, &pos);
+			if (xstricmp(arg2, "Then") == 0) {
+				sdsfree(arg2);
+				break;
+			}
+
+			sdstrim(arg2, " \t\r\n");
+			argument = sdscat(argument, arg2);
+			sdsfree(arg2);
+		}
+		while (1);
+
+		values = sdssplitlen(argument, sdslen(argument), ",", 1, &count);
+		for (i = 0; i < count; i++) {
+			int arch = ARCH_UNKNOWN;
+			if (!possible_arches[ARCH_X86] && xstricmp(values[i], "X86") == 0) {
+				possible_arches[ARCH_X86]++;
+			}
+			else if (!possible_arches[ARCH_X64] && xstricmp(values[i], "X64") == 0) {
+				possible_arches[ARCH_X64]++;
+			}
+			else if (!possible_arches[ARCH_X64] && xstricmp(values[i], "AMD64") == 0) {
+				possible_arches[ARCH_X64]++;
+			}
+			else if (!possible_arches[ARCH_X64] && xstricmp(values[i], "X86_64") == 0) {
+				possible_arches[ARCH_X64]++;
+			}
+			else if (!possible_arches[ARCH_X64] && xstricmp(values[i], "X86-64") == 0) {
+				possible_arches[ARCH_X64]++;
+			}
+			else if (!possible_arches[ARCH_ARM64] && xstricmp(values[i], "ARM64") == 0) {
+				possible_arches[ARCH_ARM64]++;
+			}
+			else {
+				result = WPIW_E_FAILED_TO_EXECUTE;
+				goto cleanup2;
+			}
+		}
+
+		for (i = ARCH_X86; i < ARCH_COUNT; i++) {
+			if (possible_arches[i]) {
+				result = RunIfArchIs(i, CommandLine + pos, Status);
+				if (result != WPIW_S_SKIP_COMMAND)
+					break;
+			}
+		}
+	cleanup2:
+		sdsfreesplitres(values, count);
+	}
+	else {
+		goto cleanup;
+	}
+
+cleanup:
+	if (argument)
+		sdsfree(argument);
+	return result;
 }
