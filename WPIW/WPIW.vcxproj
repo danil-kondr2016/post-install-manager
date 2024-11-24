@@ -128,17 +128,30 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="command.h" />
+    <ClInclude Include="cwalk.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="operations.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="sds.h" />
     <ClInclude Include="sdsalloc.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="tests.h" />
+    <ClInclude Include="utils.h" />
     <ClInclude Include="WPIW.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="command.c" />
+    <ClCompile Include="copy.c" />
+    <ClCompile Include="cwalk.c">
+      <DeploymentContent>false</DeploymentContent>
+    </ClCompile>
+    <ClCompile Include="move.c" />
+    <ClCompile Include="rename.c" />
     <ClCompile Include="sds.c" />
+    <ClCompile Include="tests.c" />
+    <ClCompile Include="utils.c" />
     <ClCompile Include="WPIW.c" />
+    <ClCompile Include="xcopy.c" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="WPIW.rc" />
