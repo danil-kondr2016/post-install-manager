@@ -54,7 +54,7 @@ static int xwcsicmp(const wchar_t *a, const wchar_t *b)
 }
 
 static int TestArch(void);
-static HRESULT RunExecutable(char *CommandLine, DWORD *Status);
+static HRESULT RunExecutable(char *FileName, char *CommandLine, DWORD *Status);
 static HRESULT RunIfArchIs(int arch, char *CommandLine, DWORD *Status);
 static HRESULT CommandIf(char *CommandLine, DWORD *Status);
 
@@ -141,7 +141,9 @@ HRESULT ExecuteCommand(char *CommandLine, DWORD *Status)
 
 	command = NextToken(CommandLine, &pos);
 	if (xstricmp(command, "Run") == 0) {
-		result = RunExecutable(CommandLine + pos, Status);
+		sds fileName = NextToken(CommandLine, &pos);
+		result = RunExecutable(fileName, CommandLine + pos, Status);
+		sdsfree(fileName);
 	}
 	else if (xstricmp(command, "If") == 0) {
 		result = CommandIf(CommandLine + pos, Status);
@@ -188,87 +190,32 @@ static LPWSTR UTF8ToWideCharAlloc(char *source)
 	return result;
 }
 
-static int SplitCommand(LPWSTR FullCommand, LPWSTR *FileName, LPWSTR *CommandLine)
+static HRESULT RunExecutable(char *FileName, char *CommandLine, DWORD *Status)
 {
-	WCHAR *p;
-
-	assert(FileName);
-	assert(CommandLine);
-
-	p = FullCommand;
-	while (*p && iswspace(*p)) p++;
-	if (*p) {
-		int in_quotes = 0;
-		int done = 0;
-		while (!done) {
-			if (in_quotes) {
-				if (p[0] == L'\\' && p[1]) {
-					p++;
-				}
-				else if (*p == L'"') {
-					if (p[1] && !iswspace(p[1]))
-						goto error;
-					done = 1;
-					p++;
-				}
-				else if (!*p) {
-					goto error;
-				}
-				else {
-					p++;
-				}
-			}
-			else {
-				switch (*p) {
-				case L' ':
-				case L'\t':
-				case L'\r':
-				case L'\n':
-				case L'\0':
-					done = 1;
-					break;
-				case '"':
-					in_quotes = 1;
-					p++;
-					break;
-				default:
-					p++;
-				}
-			}
-		}
-	}
-
-	while (*p && iswspace(*p)) *p++ = '\0';
-	*FileName = FullCommand;
-	*CommandLine = p;
-
-	return 1;
-error:
-	return 0;
-}
-
-static HRESULT RunExecutable(char *CommandLine, DWORD *Status)
-{
-	LPWSTR fullCommandLine, fileName, commandLine;
+	LPWSTR fileName, commandLine;
 	SHELLEXECUTEINFOW shellExecuteInfo = { 0 };
 	HRESULT result = 0;
 
 	assert(Status);
 	*Status = 0;
-	if (!CommandLine)
+	if (!FileName)
 		return S_OK;
-	if (!*CommandLine)
+	if (!*FileName)
 		return S_OK;
 
 	shellExecuteInfo.cbSize = sizeof(shellExecuteInfo);
 
-	fullCommandLine = UTF8ToWideCharAlloc(CommandLine);
-	if (!fullCommandLine) {
+	fileName = UTF8ToWideCharAlloc(FileName);
+	if (!fileName) {
 		result = E_OUTOFMEMORY;
 		goto exit_fn;
 	}
 
-	SplitCommand(fullCommandLine, &fileName, &commandLine);
+	commandLine = UTF8ToWideCharAlloc(CommandLine);
+	if (!commandLine) {
+		result = E_OUTOFMEMORY;
+		goto cleanup1;
+	}
 	
 	shellExecuteInfo.fMask = SEE_MASK_DOENVSUBST | SEE_MASK_NOCLOSEPROCESS | SEE_MASK_FLAG_NO_UI;
 	shellExecuteInfo.lpVerb = L"open";
@@ -278,7 +225,7 @@ static HRESULT RunExecutable(char *CommandLine, DWORD *Status)
 
 	if (!ShellExecuteExW(&shellExecuteInfo))  {
 		result = HRESULT_FROM_WIN32(GetLastError());
-		goto cleanup1;
+		goto cleanup2;
 	}
 
 	if (!shellExecuteInfo.hProcess || WAIT_FAILED == WaitForSingleObject(shellExecuteInfo.hProcess, INFINITE)) {
@@ -288,8 +235,10 @@ static HRESULT RunExecutable(char *CommandLine, DWORD *Status)
 		GetExitCodeProcess(shellExecuteInfo.hProcess, Status);
 	}
 
+cleanup2:
+	free(commandLine);
 cleanup1:
-	free(fullCommandLine);
+	free(fileName);
 exit_fn:
 	return result;
 }
