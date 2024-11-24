@@ -1,4 +1,5 @@
 #include "command.h"
+#include "utils.h"
 
 #include "sds.h"
 #include <string.h>
@@ -174,22 +175,6 @@ static int TestArch(void)
 	}
 }
 
-static LPWSTR UTF8ToWideCharAlloc(char *source)
-{
-	DWORD resultSize;
-	LPWSTR result;
-	int i;
-
-	resultSize = MultiByteToWideChar(CP_UTF8, 0, source, -1, NULL, 0);
-	result = (LPWSTR)calloc(resultSize + 1, sizeof(WCHAR));
-	if (!result)
-		return NULL;
-	MultiByteToWideChar(CP_UTF8, 0, source, -1, result, resultSize);
-	result[resultSize] = 0;
-
-	return result;
-}
-
 static HRESULT RunExecutable(char *FileName, char *CommandLine, DWORD *Status)
 {
 	LPWSTR fileName, commandLine;
@@ -236,9 +221,9 @@ static HRESULT RunExecutable(char *FileName, char *CommandLine, DWORD *Status)
 	}
 
 cleanup2:
-	free(commandLine);
+	HeapFree(GetProcessHeap(), 0, commandLine);
 cleanup1:
-	free(fileName);
+	HeapFree(GetProcessHeap(), 0, fileName);
 exit_fn:
 	return result;
 }
