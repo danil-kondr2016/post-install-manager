@@ -64,7 +64,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     CallAndShowStatus("Run test.bat a b c \"defg\"");
     CallAndShowStatus("Run \"test.bat\" \"hello with quotes\" a b c \"defg\"");
     CallAndShowStatus("Run __nonexistent__ a b c \"de\\\"f\" \"e\"");
+    CallAndShowStatus("If Arch X64 Then Run test.bat hello");
+    CallAndShowStatus("If Arch X86 Then Run test.bat hello");
+    CallAndShowStatus("If Arch X64,X86 Then Run test.bat hello");
     CallAndShowStatus("If Arch X64, X86 Then Run test.bat hello");
+    CallAndShowStatus("If Arch Unknown Then Run test.bat hello");
 
     // Инициализация глобальных строк
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);

@@ -216,7 +216,7 @@ static HRESULT RunExecutable(char *FileName, char *CommandLine, DWORD *Status)
 		result = E_OUTOFMEMORY;
 		goto cleanup1;
 	}
-	
+
 	shellExecuteInfo.fMask = SEE_MASK_DOENVSUBST | SEE_MASK_NOCLOSEPROCESS | SEE_MASK_FLAG_NO_UI;
 	shellExecuteInfo.lpVerb = L"open";
 	shellExecuteInfo.lpFile = fileName;
@@ -264,91 +264,121 @@ static HRESULT RunIfArchIs(int arch, char *CommandLine, DWORD *Status)
 	return result;
 }
 
-static HRESULT CommandIf(char *CommandLine, DWORD *Status)
+static HRESULT ParseArch(char *CommandLine)
 {
-	sds argument = NULL;
+	sds archList = NULL;
+	sds *values;
+	int count, i;
+	int native_arch;
 	size_t pos = 0;
+	HRESULT result = WPIW_S_SKIP_COMMAND;
+	unsigned char possible_arches[ARCH_COUNT] = { 0 };
+
+	archList = sdsnew(CommandLine);
+
+	sdstrim(archList, ",");
+	values = sdssplitlen(archList, sdslen(archList), ",", 1, &count);
+	for (i = 0; i < count; i++) {
+		if (values[i])
+			sdstrim(values[i], " \t\r\n");
+		if (sdslen(values[i]) == 0) {
+			sdsfree(values[i]);
+			values[i] = NULL;
+			continue;
+		}
+
+		if (!possible_arches[ARCH_X86] && xstricmp(values[i], "X86") == 0) {
+			possible_arches[ARCH_X86]++;
+			break;
+		}
+		else if (!possible_arches[ARCH_X64] && xstricmp(values[i], "X64") == 0) {
+			possible_arches[ARCH_X64]++;
+		}
+		else if (!possible_arches[ARCH_X64] && xstricmp(values[i], "AMD64") == 0) {
+			possible_arches[ARCH_X64]++;
+		}
+		else if (!possible_arches[ARCH_X64] && xstricmp(values[i], "X86_64") == 0) {
+			possible_arches[ARCH_X64]++;
+		}
+		else if (!possible_arches[ARCH_X64] && xstricmp(values[i], "X86-64") == 0) {
+			possible_arches[ARCH_X64]++;
+		}
+		else if (!possible_arches[ARCH_ARM64] && xstricmp(values[i], "ARM64") == 0) {
+			possible_arches[ARCH_ARM64]++;
+		}
+		else {
+			result = E_INVALIDARG;
+			goto cleanup2;
+		}
+	}
+
+	native_arch = TestArch();
+	for (i = ARCH_UNKNOWN; i < ARCH_COUNT; i++) {
+		if (possible_arches[i] && i == native_arch) {
+			result = S_OK;
+			break;
+		}
+	}
+
+cleanup2:
+	sdsfreesplitres(values, count);
+cleanup1:
+	sdsfree(archList);
+	return result;
+}
+
+static HRESULT TestCondition(char *CommandLine)
+{
+	size_t pos = 0;
+	sds argument = NULL;
 	HRESULT result = S_OK;
 
 	argument = NextToken(CommandLine, &pos);
 	if (xstricmp(argument, "Arch") == 0) {
-		sds *values;
-		sds arg2;
-		int count, i;
-		char possible_arches[ARCH_COUNT] = { 0 };
-
-		sdsfree(argument);
-		argument = NextToken(CommandLine, &pos);
-		sdstrim(argument, " \t\r\n");
-
-		do {
-			arg2 = NextToken(CommandLine, &pos);
-			if (xstricmp(arg2, "Then") == 0) {
-				sdsfree(arg2);
-				break;
-			}
-
-			sdstrim(arg2, " \t\r\n");
-			argument = sdscat(argument, arg2);
-			sdsfree(arg2);
-		}
-		while (1);
-
-		values = sdssplitlen(argument, sdslen(argument), ",", 1, &count);
-		for (i = 0; i < count; i++) {
-			if (values[i])
-				sdstrim(values[i], " \t\r\n");
-			if (sdslen(values[i]) == 0) {
-				sdsfree(values[i]);
-				values[i] = NULL;
-			}
-		}
-
-		for (i = 0; i < count; i++) {
-			if (values[i] == NULL)
-				continue;
-
-			int arch = ARCH_UNKNOWN;
-			if (!possible_arches[ARCH_X86] && xstricmp(values[i], "X86") == 0) {
-				possible_arches[ARCH_X86]++;
-			}
-			else if (!possible_arches[ARCH_X64] && xstricmp(values[i], "X64") == 0) {
-				possible_arches[ARCH_X64]++;
-			}
-			else if (!possible_arches[ARCH_X64] && xstricmp(values[i], "AMD64") == 0) {
-				possible_arches[ARCH_X64]++;
-			}
-			else if (!possible_arches[ARCH_X64] && xstricmp(values[i], "X86_64") == 0) {
-				possible_arches[ARCH_X64]++;
-			}
-			else if (!possible_arches[ARCH_X64] && xstricmp(values[i], "X86-64") == 0) {
-				possible_arches[ARCH_X64]++;
-			}
-			else if (!possible_arches[ARCH_ARM64] && xstricmp(values[i], "ARM64") == 0) {
-				possible_arches[ARCH_ARM64]++;
-			}
-			else {
-				result = WPIW_E_FAILED_TO_EXECUTE;
-				goto cleanup2;
-			}
-		}
-
-		for (i = ARCH_X86; i < ARCH_COUNT; i++) {
-			if (possible_arches[i]) {
-				result = RunIfArchIs(i, CommandLine + pos, Status);
-				if (result != WPIW_S_SKIP_COMMAND)
-					break;
-			}
-		}
-	cleanup2:
-		sdsfreesplitres(values, count);
+		result = ParseArch(CommandLine + pos);
 	}
 	else {
-		goto cleanup;
+		result = E_INVALIDARG;
+	}
+
+	sdsfree(argument);
+	return result;
+}
+
+static HRESULT CommandIf(char *CommandLine, DWORD *Status)
+{
+	sds argument = NULL;
+	sds condition = NULL;
+	size_t pos = 0;
+	HRESULT result = S_OK;
+	
+	condition = sdsempty();
+	do {
+		argument = NextToken(CommandLine, &pos);
+		sdstrim(argument, " \t\r\n");
+		if (xstricmp(argument, "Then") == 0) {
+			sdsfree(argument);
+			argument = NULL;
+			break;
+		}
+
+		condition = sdscatsds(condition, argument);
+		condition = sdscatlen(condition, " ", 1);
+
+		sdsfree(argument);
+		argument = NULL;
+	}
+	while (1);
+
+	if (SUCCEEDED(result = TestCondition(condition))) {
+		if (result == WPIW_S_SKIP_COMMAND) 
+			goto cleanup;
+
+		result = ExecuteCommand(CommandLine + pos, Status);
 	}
 
 cleanup:
-	if (argument)
-		sdsfree(argument);
+	if (condition)
+		sdsfree(condition);
 	return result;
 }
