@@ -56,7 +56,6 @@ static int xwcsicmp(const wchar_t *a, const wchar_t *b)
 
 static int TestArch(void);
 static HRESULT RunExecutable(char *FileName, char *CommandLine, DWORD *Status);
-static HRESULT RunIfArchIs(int arch, char *CommandLine, DWORD *Status);
 static HRESULT CommandIf(char *CommandLine, DWORD *Status);
 
 sds NextToken(char *CommandLine, size_t *pos)
@@ -225,27 +224,6 @@ cleanup2:
 cleanup1:
 	HeapFree(GetProcessHeap(), 0, fileName);
 exit_fn:
-	return result;
-}
-
-static HRESULT RunIfArchIs(int arch, char *CommandLine, DWORD *Status)
-{
-	int native_arch;
-	HRESULT result;
-
-	assert(Status);
-	*Status = 0;
-
-	if (arch == ARCH_UNKNOWN)
-		return S_FALSE;
-
-	native_arch = TestArch();
-	if (native_arch != ARCH_UNKNOWN && arch != native_arch)
-		result = WPIW_S_SKIP_COMMAND;
-	if (native_arch == ARCH_UNKNOWN)
-		result = WPIW_E_FAILED_TO_EXECUTE;
-
-	result = ExecuteCommand(CommandLine, Status);
 	return result;
 }
 
