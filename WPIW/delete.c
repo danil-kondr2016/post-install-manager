@@ -1,5 +1,6 @@
 #include "operations.h"
 #include "utils.h"
+#include "tests.h"
 
 #include <windows.h>
 #include <string.h>
