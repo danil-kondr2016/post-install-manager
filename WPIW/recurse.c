@@ -117,10 +117,10 @@ static LPWSTR append_alloc(LPWSTR Path1, LPWSTR Path2)
 	if (!NewPath)
 		return NULL;
 
-	wcsncpy_s(NewPath, NewPathSize, Path1, Path1Size);
+	wcsncpy_s(NewPath, NewPathSize + 1, Path1, Path1Size);
 	NewPath[Path1Size] = L'\0';
-	wcsncat_s(NewPath, NewPathSize, L"\\", 1);
-	wcsncat_s(NewPath, NewPathSize, Path2, Path2Size);
+	wcsncat_s(NewPath, NewPathSize + 1, L"\\", 1);
+	wcsncat_s(NewPath, NewPathSize + 1, Path2, Path2Size);
 	NewPath[NewPathSize] = L'\0';
 
 	return NewPath;
