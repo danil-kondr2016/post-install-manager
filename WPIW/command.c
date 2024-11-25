@@ -1,7 +1,11 @@
 #include "command.h"
 #include "utils.h"
+#include "operations.h"
+#include "tests.h"
 
 #include "sds.h"
+#include "sdsalloc.h"
+
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -57,6 +61,12 @@ static int xwcsicmp(const wchar_t *a, const wchar_t *b)
 static int TestArch(void);
 static HRESULT RunExecutable(char *FileName, char *CommandLine, DWORD *Status);
 static HRESULT CommandIf(char *CommandLine, DWORD *Status);
+static HRESULT CommandCopyFile(char *CommandLine, DWORD *Status);
+static HRESULT CommandCopyDir(char *CommandLine, DWORD *Status);
+static HRESULT CommandMove(char *CommandLine, DWORD *Status);
+static HRESULT CommandRename(char *CommandLine, DWORD *Status);
+static HRESULT CommandRemoveFile(char *CommandLine, DWORD *Status);
+static HRESULT CommandRemoveDir(char *CommandLine, DWORD *Status);
 
 sds NextToken(char *CommandLine, size_t *pos)
 {
@@ -124,6 +134,46 @@ error:
 	return NULL;
 }
 
+sds *SplitTokens(char *CommandLine, int *Count)
+{
+	sds *result = NULL;
+	sds token;
+	size_t pos = 0;
+
+	assert(Count);
+	(*Count) = 0;
+	result = s_malloc(sizeof(sds));
+	if (!result)
+		return result;
+	*result = NULL;
+
+	do {
+		sds *result_new;
+		result_new = s_realloc(result, (*Count + 2) * sizeof(sds));
+		if (!result_new) {
+			sdsfreesplitres(result, *Count - 1);
+			return NULL;
+		}
+		result = result_new;
+
+		token = NextToken(CommandLine, &pos);
+		if (!token) {
+			sdsfreesplitres(result, *Count - 1);
+			return NULL;
+		}
+		if (!sdslen(token)) {
+			break;
+		}
+		result[*Count] = token;
+		result[*Count + 1] = NULL;
+
+		(*Count)++;
+	}
+	while (1);
+
+	return result;
+}
+
 HRESULT ExecuteCommand(char *CommandLine, DWORD *Status)
 {
 	HRESULT result = S_OK;
@@ -147,6 +197,21 @@ HRESULT ExecuteCommand(char *CommandLine, DWORD *Status)
 	}
 	else if (xstricmp(command, "If") == 0) {
 		result = CommandIf(CommandLine + pos, Status);
+	}
+	else if (xstricmp(command, "CopyFile") == 0) {
+		result = CommandCopyFile(CommandLine + pos, Status);
+	}
+	else if (xstricmp(command, "CopyDir") == 0) {
+		result = CommandCopyDir(CommandLine + pos, Status);
+	}
+	else if (xstricmp(command, "Move") == 0) {
+		result = CommandMove(CommandLine + pos, Status);
+	}
+	else if (xstricmp(command, "RemoveFile") == 0) {
+		result = CommandRemoveFile(CommandLine + pos, Status);
+	}
+	else if (xstricmp(command, "RemoveDir") == 0) {
+		result = CommandRemoveDir(CommandLine + pos, Status);
 	}
 	else {
 		result = WPIW_E_COMMAND_NOT_FOUND;
@@ -343,5 +408,232 @@ static HRESULT CommandIf(char *CommandLine, DWORD *Status)
 cleanup:
 	if (condition)
 		sdsfree(condition);
+	return result;
+}
+
+static HRESULT CommandCopyFile(char *CommandLine, DWORD *Status)
+{
+	sds *values;
+	int count;
+	HRESULT result = S_OK;
+
+	assert(Status);
+	*Status = 1;
+
+	values = SplitTokens(CommandLine, &count);
+	if (!values) {
+		return E_OUTOFMEMORY;
+	}
+
+	if (count < 2) {
+		result = E_INVALIDARG;
+	}
+	else if (count == 2) {
+		result = OpCopySingleFile(values[0], values[1]);
+	}
+	else if (count > 2) {
+		sds destination = values[count - 1];
+		int i;
+
+		if (!TestIsDirectory(destination)) {
+			result = HRESULT_FROM_WIN32(ERROR_CANNOT_COPY);
+			goto cleanup;
+		}
+
+		for (i = 0; i < count - 1; i++) {
+			result = OpCopySingleFile(values[i], destination);
+			if (FAILED(result)) {
+				break;
+			}
+		}
+	}
+
+	if (SUCCEEDED(result))
+		*Status = 0;
+
+cleanup:
+	sdsfreesplitres(values, count);
+	return result;
+}
+
+static HRESULT CommandCopyDir(char *CommandLine, DWORD *Status)
+{
+	HRESULT result = S_OK;
+	sds *values;
+	int count;
+	
+	assert(Status);
+	*Status = 1;
+
+	values = SplitTokens(CommandLine, &count);
+	if (!values) {
+		return E_OUTOFMEMORY;
+	}
+
+	if (count == 2) {
+		if (!TestIsDirectory(values[0]) || !TestIsDirectory(values[1])) {
+			result = HRESULT_FROM_WIN32(ERROR_CANNOT_COPY);
+			goto cleanup;
+		}
+		result = OpCopyDirectory(values[0], values[1]);
+	}
+	else {
+		result = E_INVALIDARG;
+	}
+
+	if (SUCCEEDED(result))
+		*Status = 0;
+
+cleanup:
+	sdsfreesplitres(values, count);
+	return result;
+}
+
+// TODO unify with CommandCopyFile
+static HRESULT CommandMove(char *CommandLine, DWORD *Status)
+{
+	sds *values;
+	int count;
+	HRESULT result = S_OK;
+
+	assert(Status);
+	*Status = 1;
+
+	values = SplitTokens(CommandLine, &count);
+	if (!values) {
+		return E_OUTOFMEMORY;
+	}
+
+	if (count < 2) {
+		result = E_INVALIDARG;
+	}
+	else if (count == 2) {
+		result = OpMoveFile(values[0], values[1]);
+	}
+	else if (count > 2) {
+		sds destination = values[count - 1];
+		int i;
+
+		if (!TestIsDirectory(destination)) {
+			result = HRESULT_FROM_WIN32(ERROR_CANNOT_COPY);
+			goto cleanup;
+		}
+
+		for (i = 0; i < count - 1; i++) {
+			result = OpMoveFile(values[i], destination);
+			if (FAILED(result)) {
+				break;
+			}
+		}
+	}
+
+	if (SUCCEEDED(result))
+		*Status = 0;
+
+cleanup:
+	sdsfreesplitres(values, count);
+	return result;
+}
+
+static HRESULT CommandRename(char *CommandLine, DWORD *Status)
+{
+	HRESULT result = S_OK;
+	sds path, newName, third;
+	size_t pos = 0;
+
+	assert(Status);
+	*Status = 1;
+
+	path = NextToken(CommandLine, &pos);
+	if (!path) {
+		result = E_OUTOFMEMORY;
+		goto exit_fn;
+	}
+
+	newName = NextToken(CommandLine, &pos);
+	if (!newName) {
+		result = E_OUTOFMEMORY;
+		goto cleanup1;
+	}
+	if (!sdslen(newName)) {
+		result = E_INVALIDARG;
+		goto cleanup2;
+	}
+
+	third = NextToken(CommandLine, &pos);
+	if (!third) {
+		result = E_OUTOFMEMORY;
+		goto cleanup2;
+	}
+	if (sdslen(third)) {
+		result = E_INVALIDARG;
+		goto cleanup3;
+	}
+
+	result = OpRenameFile(path, newName);
+	if (SUCCEEDED(result)) *Status = 0;
+	
+cleanup3:
+	sdsfree(third);
+cleanup2:
+	sdsfree(newName);
+cleanup1:
+	sdsfree(path);
+exit_fn:
+	return result;
+}
+
+static HRESULT CommandRemoveFile(char *CommandLine, DWORD *Status)
+{
+	HRESULT result = S_OK;
+	sds toRemove = NULL;
+	size_t pos = 0;
+
+	assert(Status);
+	*Status = 1;
+
+	while (SUCCEEDED(result)) {
+		toRemove = NextToken(CommandLine, &pos);
+		if (!toRemove) {
+			return E_INVALIDARG;
+		}
+		if (!sdslen(toRemove)) {
+			sdsfree(toRemove);
+			break;
+		}
+
+		result = OpRemoveFile(toRemove);
+		sdsfree(toRemove);
+	}
+
+	if (SUCCEEDED(result)) *Status = 0;
+	return result;
+}
+
+// TODO unify with CommandRemoveFile
+static HRESULT CommandRemoveDir(char *CommandLine, DWORD *Status)
+{
+	HRESULT result = S_OK;
+	sds toRemove = NULL;
+	size_t pos = 0;
+
+	assert(Status);
+	*Status = 1;
+
+	while (SUCCEEDED(result)) {
+		toRemove = NextToken(CommandLine, &pos);
+		if (!toRemove) {
+			return E_INVALIDARG;
+		}
+		if (!sdslen(toRemove)) {
+			sdsfree(toRemove);
+			break;
+		}
+
+		result = OpRemoveDirectory(toRemove);
+		sdsfree(toRemove);
+	}
+
+	if (SUCCEEDED(result)) *Status = 0;
 	return result;
 }
