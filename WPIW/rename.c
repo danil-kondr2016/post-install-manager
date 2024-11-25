@@ -15,7 +15,7 @@ HRESULT OpRenameFile(char *FilePath, char *NewName)
 
 	NewPath = sdsempty();
 	BufferSize = cwk_path_change_basename(FilePath, NewName, NewPath, 0);
-	sdsgrowzero(NewPath, BufferSize+1);
+	NewPath = sdsgrowzero(NewPath, BufferSize+1);
 	if (!NewPath) {
 		result = E_OUTOFMEMORY;
 		goto exit_fn;

@@ -9,7 +9,7 @@ wchar_t *UTF8ToWideCharAlloc(char *source)
 	int i;
 
 	resultSize = MultiByteToWideChar(CP_UTF8, 0, source, -1, NULL, 0);
-	result = (wchar_t *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(wchar_t) * resultSize);
+	result = (wchar_t *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(wchar_t) * (resultSize + 1));
 	if (!result)
 		return NULL;
 	MultiByteToWideChar(CP_UTF8, 0, source, -1, result, resultSize);

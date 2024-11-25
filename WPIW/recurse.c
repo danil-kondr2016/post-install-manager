@@ -55,9 +55,9 @@ HRESULT OpCopyDirectory(char *Source, char *Destination)
 		sds NewDestination = sdsempty();
 		size_t NewDestinationSize;
 
-		NewDestinationSize = cwk_path_get_absolute(Destination, BaseName, NewDestination, 0);
-		sdsgrowzero(NewDestination, NewDestinationSize + 1);
-		cwk_path_get_absolute(Destination, BaseName, NewDestination, NewDestinationSize);
+		NewDestinationSize = cwk_path_join(Destination, BaseName, NewDestination, 0);
+		NewDestination = sdsgrowzero(NewDestination, NewDestinationSize + 1);
+		cwk_path_join(Destination, BaseName, NewDestination, NewDestinationSize);
 
 		szwDestination = UTF8ToWideCharAlloc(NewDestination);
 		sdsfree(NewDestination);
