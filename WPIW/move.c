@@ -40,8 +40,8 @@ HRESULT OpMoveFile(char *Source, char *Destination)
 		goto cleanup1;
 	}
 
-	MoveFileW(szwSource, szwDestination);
-	result = HRESULT_FROM_WIN32(GetLastError());
+	if (!MoveFileW(szwSource, szwDestination))
+		result = HRESULT_FROM_WIN32(GetLastError());
 
 cleanup2:
 	HeapFree(GetProcessHeap(), 0, szwDestination);

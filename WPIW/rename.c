@@ -37,8 +37,8 @@ HRESULT OpRenameFile(char *FilePath, char *NewName)
 		goto cleanup2;
 	}
 
-	MoveFileW(szwOldPath, szwNewPath);
-	result = HRESULT_FROM_WIN32(GetLastError());
+	if (!MoveFileW(szwOldPath, szwNewPath))
+		result = HRESULT_FROM_WIN32(GetLastError());
 
 cleanup3:
 	HeapFree(GetProcessHeap(), 0, szwNewPath);

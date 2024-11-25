@@ -19,8 +19,8 @@ HRESULT OpRemoveFile(char* File)
 		goto exit_fn;
 	}
 
-	DeleteFileW(szwFile);
-	result = HRESULT_FROM_WIN32(GetLastError());
+	if (!DeleteFileW(szwFile))
+		result = HRESULT_FROM_WIN32(GetLastError());
 
 	HeapFree(GetProcessHeap(), 0, szwFile);
 exit_fn:

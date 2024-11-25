@@ -11,29 +11,33 @@ typedef HRESULT (*file_callback)(LPWSTR arg1, LPWSTR arg2);
 
 static HRESULT copy_single(LPWSTR Source, LPWSTR Destination)
 {
-	CopyFileW(Source, Destination, FALSE);
+	if (!CopyFileW(Source, Destination, FALSE))
 	return HRESULT_FROM_WIN32(GetLastError());
+	return S_OK;
 }
 
 static HRESULT delete_single(LPWSTR File, LPWSTR Unused)
 {
 	(void)Unused;
-	DeleteFileW(File);
+	if (!DeleteFileW(File))
 	return HRESULT_FROM_WIN32(GetLastError());
+	return S_OK;
 }
 
 static HRESULT create_destination(LPWSTR Unused, LPWSTR Destination)
 {
 	(void)Unused;
-	CreateDirectoryW(Destination, NULL);
+	if (!CreateDirectoryW(Destination, NULL))
 	return HRESULT_FROM_WIN32(GetLastError());
+	return S_OK;
 }
 
 static HRESULT delete_folder(LPWSTR Source, LPWSTR Unused)
 {
 	(void)Unused;
-	RemoveDirectoryW(Source);
+	if (!RemoveDirectoryW(Source))
 	return HRESULT_FROM_WIN32(GetLastError());
+	return S_OK;
 }
 
 static HRESULT enum_recursively(LPWSTR Source, LPWSTR Destination, file_callback begin_cb, file_callback cb, file_callback end_cb);
