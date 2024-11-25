@@ -131,6 +131,8 @@ static HRESULT enum_recursively(LPWSTR Source, LPWSTR Destination, file_callback
 	WIN32_FIND_DATAW FindData = { 0 };
 	HANDLE hFind;
 	HRESULT result = S_OK;
+	LPWSTR Pattern = NULL;
+	size_t PatternSize;
 
 	if (begin_cb) {
 		result = begin_cb(Source, Destination);
@@ -142,6 +144,29 @@ static HRESULT enum_recursively(LPWSTR Source, LPWSTR Destination, file_callback
 	if (INVALID_HANDLE_VALUE == hFind) {
 		return HRESULT_FROM_WIN32(GetLastError());
 	}
+
+	if (FindData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+		FindClose(hFind);
+		PatternSize = wcslen(Source) + 2;
+		Pattern = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, (PatternSize + 1) * sizeof(WCHAR));
+		if (!Pattern) {
+			result = E_OUTOFMEMORY;
+			goto cleanup1;
+		}
+		wcsncpy_s(Pattern, PatternSize + 1, Source, wcslen(Source));
+		wcsncat_s(Pattern, PatternSize + 1, L"\\*", 2);
+		
+		hFind = FindFirstFileW(Pattern, &FindData);
+		if (INVALID_HANDLE_VALUE == hFind) {
+			result = HRESULT_FROM_WIN32(GetLastError());
+			goto cleanup4;
+		}
+	}
+	else {
+		result = HRESULT_FROM_WIN32(ERROR_PATH_NOT_FOUND);
+		goto cleanup1;
+	}
+
 	do {
 		LPWSTR NewSource, NewDestination = NULL;
 
@@ -153,7 +178,7 @@ static HRESULT enum_recursively(LPWSTR Source, LPWSTR Destination, file_callback
 		NewSource = append_alloc(Source, FindData.cFileName);
 		if (!NewSource) {
 			result = E_OUTOFMEMORY;
-			goto cleanup1;
+			goto cleanup4;
 		}
 
 		if (Destination) {
@@ -178,10 +203,17 @@ static HRESULT enum_recursively(LPWSTR Source, LPWSTR Destination, file_callback
 	}
 	while (SUCCEEDED(result) && FindNextFileW(hFind, &FindData));
 
-	if (end_cb) {
+	if (FAILED(result) && HRESULT_CODE(result) == ERROR_NO_MORE_FILES) {
+		result = S_OK;
+	}
+
+	if (SUCCEEDED(result) && end_cb) {
 		result = end_cb(Source, Destination);
 	}
 
+cleanup4:
+	if (Pattern)
+		HeapFree(GetProcessHeap(), 0, Pattern);
 cleanup1:
 	FindClose(hFind);
 	return result;
