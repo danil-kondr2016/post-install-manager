@@ -97,7 +97,7 @@ HRESULT OpRemoveDirectory(char* Source)
 		goto exit_fn;
 	}
 
-	result = enum_recursively(szwSource, NULL, NULL, copy_single, delete_folder);
+	result = enum_recursively(szwSource, NULL, NULL, delete_single, delete_folder);
 	HeapFree(GetProcessHeap(), 0, szwSource);
 exit_fn:
 	return result;
