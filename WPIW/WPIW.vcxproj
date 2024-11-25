@@ -146,12 +146,13 @@
       <DeploymentContent>false</DeploymentContent>
     </ClCompile>
     <ClCompile Include="move.c" />
+    <ClCompile Include="delete.c" />
     <ClCompile Include="rename.c" />
     <ClCompile Include="sds.c" />
     <ClCompile Include="tests.c" />
     <ClCompile Include="utils.c" />
     <ClCompile Include="WPIW.c" />
-    <ClCompile Include="xcopy.c" />
+    <ClCompile Include="recurse.c" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="WPIW.rc" />
