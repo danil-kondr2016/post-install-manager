@@ -69,6 +69,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     CallAndShowStatus("If Arch X64,X86 Then Run test.bat hello");
     CallAndShowStatus("If Arch X64, X86 Then Run test.bat hello");
     CallAndShowStatus("If Arch Unknown Then Run test.bat hello");
+    CallAndShowStatus("RemoveDir d");
 
     // Инициализация глобальных строк
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
