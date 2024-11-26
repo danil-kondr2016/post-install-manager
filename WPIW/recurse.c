@@ -12,7 +12,7 @@ typedef HRESULT (*file_callback)(LPWSTR arg1, LPWSTR arg2);
 static HRESULT copy_single(LPWSTR Source, LPWSTR Destination)
 {
 	if (!CopyFileW(Source, Destination, FALSE))
-	return HRESULT_FROM_WIN32(GetLastError());
+		return HRESULT_FROM_WIN32(GetLastError());
 	return S_OK;
 }
 
@@ -20,7 +20,7 @@ static HRESULT delete_single(LPWSTR File, LPWSTR Unused)
 {
 	(void)Unused;
 	if (!DeleteFileW(File))
-	return HRESULT_FROM_WIN32(GetLastError());
+		return HRESULT_FROM_WIN32(GetLastError());
 	return S_OK;
 }
 
@@ -28,7 +28,7 @@ static HRESULT create_destination(LPWSTR Unused, LPWSTR Destination)
 {
 	(void)Unused;
 	if (!CreateDirectoryW(Destination, NULL))
-	return HRESULT_FROM_WIN32(GetLastError());
+		return HRESULT_FROM_WIN32(GetLastError());
 	return S_OK;
 }
 
@@ -36,7 +36,7 @@ static HRESULT delete_folder(LPWSTR Source, LPWSTR Unused)
 {
 	(void)Unused;
 	if (!RemoveDirectoryW(Source))
-	return HRESULT_FROM_WIN32(GetLastError());
+		return HRESULT_FROM_WIN32(GetLastError());
 	return S_OK;
 }
 
