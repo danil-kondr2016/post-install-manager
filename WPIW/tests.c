@@ -7,6 +7,25 @@
 #include "sds.h"
 #include "cwalk.h"
 
+bool TestExists(char *Path)
+{
+	HANDLE hFind;
+	LPWSTR szwPath;
+	WIN32_FIND_DATAW findData;
+	bool result = false;
+
+	szwPath = UTF8ToWideCharAlloc(Path);
+	if (!szwPath)
+		return false;
+
+	hFind = FindFirstFileW(szwPath, &findData);
+	if (hFind != INVALID_HANDLE_VALUE)
+		result = true;
+
+	FindClose(hFind);
+	return result;
+}
+
 bool TestIsDirectory(char *Path)
 {
 	DWORD Attributes;
