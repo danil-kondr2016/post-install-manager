@@ -129,6 +129,7 @@
   <ItemGroup>
     <ClInclude Include="command.h" />
     <ClInclude Include="cwalk.h" />
+    <ClInclude Include="execute.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="operations.h" />
     <ClInclude Include="Resource.h" />
@@ -145,6 +146,7 @@
     <ClCompile Include="cwalk.c">
       <DeploymentContent>false</DeploymentContent>
     </ClCompile>
+    <ClCompile Include="execute.c" />
     <ClCompile Include="move.c" />
     <ClCompile Include="delete.c" />
     <ClCompile Include="rename.c" />
