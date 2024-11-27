@@ -3,6 +3,7 @@
 #include "utils.h"
 #include "operations.h"
 #include "tests.h"
+#include "execute.h"
 
 #include "sds.h"
 #include "sdsalloc.h"
@@ -60,7 +61,6 @@ static int xwcsicmp(const wchar_t *a, const wchar_t *b)
 }
 
 static int TestArch(void);
-static HRESULT RunExecutable(char *FileName, char *CommandLine, DWORD *Status);
 static HRESULT CommandIf(char *CommandLine, DWORD *Status);
 static HRESULT CommandCopyFile(char *CommandLine, DWORD *Status);
 static HRESULT CommandCopyDir(char *CommandLine, DWORD *Status);
@@ -193,7 +193,7 @@ HRESULT ExecuteCommand(char *CommandLine, DWORD *Status)
 	command = NextToken(CommandLine, &pos);
 	if (xstricmp(command, "Run") == 0) {
 		sds fileName = NextToken(CommandLine, &pos);
-		result = RunExecutable(fileName, CommandLine + pos, Status);
+		result = Run(fileName, CommandLine + pos, Status);
 		sdsfree(fileName);
 	}
 	else if (xstricmp(command, "If") == 0) {
@@ -238,59 +238,6 @@ static int TestArch(void)
 	default:
 		return ARCH_UNKNOWN;
 	}
-}
-
-static HRESULT RunExecutable(char *FileName, char *CommandLine, DWORD *Status)
-{
-	LPWSTR fileName, commandLine;
-	SHELLEXECUTEINFOW shellExecuteInfo = { 0 };
-	HRESULT result = 0;
-
-	assert(Status);
-	*Status = 0;
-	if (!FileName)
-		return S_OK;
-	if (!*FileName)
-		return S_OK;
-
-	shellExecuteInfo.cbSize = sizeof(shellExecuteInfo);
-
-	fileName = UTF8ToWideCharAlloc(FileName);
-	if (!fileName) {
-		result = E_OUTOFMEMORY;
-		goto exit_fn;
-	}
-
-	commandLine = UTF8ToWideCharAlloc(CommandLine);
-	if (!commandLine) {
-		result = E_OUTOFMEMORY;
-		goto cleanup1;
-	}
-
-	shellExecuteInfo.fMask = SEE_MASK_DOENVSUBST | SEE_MASK_NOCLOSEPROCESS | SEE_MASK_FLAG_NO_UI;
-	shellExecuteInfo.lpVerb = L"open";
-	shellExecuteInfo.lpFile = fileName;
-	shellExecuteInfo.lpParameters = commandLine;
-	shellExecuteInfo.nShow = SW_SHOW;
-
-	if (!ShellExecuteExW(&shellExecuteInfo))  {
-		result = HRESULT_FROM_WIN32(GetLastError());
-		goto cleanup2;
-	}
-
-	if (!shellExecuteInfo.hProcess || WAIT_FAILED == WaitForSingleObject(shellExecuteInfo.hProcess, INFINITE)) {
-		result = HRESULT_FROM_WIN32(GetLastError());
-	}
-	else {
-		GetExitCodeProcess(shellExecuteInfo.hProcess, Status);
-	}
-
-cleanup2:
-	HeapFree(GetProcessHeap(), 0, commandLine);
-cleanup1:
-	HeapFree(GetProcessHeap(), 0, fileName);
-exit_fn:
-	return result;
 }
 
 static HRESULT ParseArch(char *CommandLine)
