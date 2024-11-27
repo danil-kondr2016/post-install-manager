@@ -1,3 +1,4 @@
+#include "WPIW.h"
 #include "operations.h"
 #include "utils.h"
 #include "tests.h"
