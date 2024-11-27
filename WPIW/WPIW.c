@@ -69,6 +69,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     CallAndShowStatus("If Arch X64,X86 Then Run test.bat hello");
     CallAndShowStatus("If Arch X64, X86 Then Run test.bat hello");
     CallAndShowStatus("If Arch Unknown Then Run test.bat hello");
+    CallAndShowStatus("Run cmd /c echo a > a");
+    CallAndShowStatus("Run cmd /c echo b > b");
+    CallAndShowStatus("Run cmd /c echo c > c");
+    CallAndShowStatus("Run cmd /c mkdir d");
+    CallAndShowStatus("CopyFile a b c d");
     CallAndShowStatus("RemoveDir d");
 
     // Инициализация глобальных строк
