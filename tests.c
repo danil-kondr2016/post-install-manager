@@ -19,8 +19,8 @@ bool TestIsDirectory(char *Path)
 	DWORD Attributes;
 	bool result = false;
 
-	Attributes = GetFileAttributesW(Path);
-	if (Attributes != INVALID_FILE_ATTRIBUTES && Attributes & FILE_ATTRIBUTE_DIRECTORY) {
+	Attributes = GetFileAttributes(Path);
+	if ((Attributes != INVALID_FILE_ATTRIBUTES) && (Attributes & FILE_ATTRIBUTE_DIRECTORY)) {
 		result = true;
 	}
 
