@@ -87,12 +87,6 @@
     <ClInclude Include="utils.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
-    <ClInclude Include="die.h">
-      <Filter>Файлы заголовков</Filter>
-    </ClInclude>
-    <ClInclude Include="runner.h">
-      <Filter>Файлы заголовков</Filter>
-    </ClInclude>
     <ClInclude Include="command.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
@@ -138,12 +132,6 @@
       <Filter>Исходные файлы</Filter>
     </ClCompile>
     <ClCompile Include="strtok.c">
-      <Filter>Исходные файлы</Filter>
-    </ClCompile>
-    <ClCompile Include="die.c">
-      <Filter>Исходные файлы</Filter>
-    </ClCompile>
-    <ClCompile Include="runner.c">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
     <ClCompile Include="stricmp.c">

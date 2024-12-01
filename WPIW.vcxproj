@@ -21,9 +21,7 @@
   <ItemGroup>
     <ClInclude Include="command.h" />
     <ClInclude Include="cwalk.h" />
-    <ClInclude Include="die.h" />
     <ClInclude Include="operations.h" />
-    <ClInclude Include="runner.h" />
     <ClInclude Include="sds.h" />
     <ClInclude Include="sdsalloc.h" />
     <ClInclude Include="stdafx.h" />
@@ -52,13 +50,11 @@
     <ClCompile Include="copy.c" />
     <ClCompile Include="cwalk.c" />
     <ClCompile Include="delete.c" />
-    <ClCompile Include="die.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="mkdir.c" />
     <ClCompile Include="move.c" />
     <ClCompile Include="recurse.c" />
     <ClCompile Include="rename.c" />
-    <ClCompile Include="runner.c" />
     <ClCompile Include="sds.c" />
     <ClCompile Include="stricmp.c" />
     <ClCompile Include="tests.c" />
