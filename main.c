@@ -1,6 +1,5 @@
 #include "stdafx.h"
 
-#include "runner.h"
 #include "command.h"
 
 void CallAndShowStatus(PCMDRUNNER Runner, char *command)
