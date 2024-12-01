@@ -19,6 +19,8 @@ enum
 	ARCH_COUNT
 };
 
+typedef HRESULT(*COMMAND_FUNCTION)(PCMDRUNNER, char *, DWORD *);
+
 static int TestArch(void);
 static HRESULT CommandIf(PCMDRUNNER Runner, char *CommandLine, DWORD *Status);
 static HRESULT CommandCopyFile(PCMDRUNNER Runner, char *CommandLine, DWORD *Status);
@@ -26,10 +28,31 @@ static HRESULT CommandCopyDir(PCMDRUNNER Runner, char *CommandLine, DWORD *Statu
 static HRESULT CommandMove(PCMDRUNNER Runner, char *CommandLine, DWORD *Status);
 static HRESULT CommandRename(PCMDRUNNER Runner, char *CommandLine, DWORD *Status);
 static HRESULT CommandRemoveFile(PCMDRUNNER Runner, char *CommandLine, DWORD *Status);
-static HRESULT CommandRemoveRecurse(PCMDRUNNER Runner, char *CommandLine, DWORD *Status);
 static HRESULT CommandRemoveDir(PCMDRUNNER Runner, char *CommandLine, DWORD *Status);
 static HRESULT CommandMakeDir(PCMDRUNNER Runner, char *CommandLine, DWORD *Status);
 static HRESULT CommandRun(PCMDRUNNER Runner, char *CommandLine, DWORD *Status);
+static HRESULT CommandCmd(PCMDRUNNER Runner, char *CommandLine, DWORD *Status);
+
+#define CMD_TABLE_ENTRY(name) {#name, Command##name}
+#define CMD_TABLE_END {"", NULL}
+
+static const struct
+{
+	char command[64];
+	COMMAND_FUNCTION function;
+} CommandTable[] = {
+	CMD_TABLE_ENTRY(Run),
+	CMD_TABLE_ENTRY(Cmd),
+	CMD_TABLE_ENTRY(If),
+	CMD_TABLE_ENTRY(CopyFile),
+	CMD_TABLE_ENTRY(CopyDir),
+	CMD_TABLE_ENTRY(Move),
+	CMD_TABLE_ENTRY(Rename),
+	CMD_TABLE_ENTRY(RemoveFile),
+	CMD_TABLE_ENTRY(RemoveDir),
+	CMD_TABLE_ENTRY(MakeDir),
+	CMD_TABLE_END
+};
 
 static sds NextToken(char *CommandLine, size_t *pos)
 {
@@ -116,6 +139,8 @@ HRESULT ExecuteCommand(PCMDRUNNER Runner, char *CommandLine, DWORD *Status)
 	HRESULT result = S_OK;
 	sds command;
 	size_t pos = 0;
+	COMMAND_FUNCTION function = NULL;
+	int i;
 
 	if (!Runner)
 		return E_POINTER;
@@ -129,36 +154,20 @@ HRESULT ExecuteCommand(PCMDRUNNER Runner, char *CommandLine, DWORD *Status)
 		return S_FALSE;
 
 	command = NextToken(CommandLine, &pos);
-	if (xstricmp(command, "Run") == 0) {
-		result = CommandRun(Runner, CommandLine + pos, Status);
+	for (i = 0; CommandTable[i].function; i++) {
+		if (xstricmp(command, CommandTable[i].command) == 0) {
+			function = CommandTable[i].function;
+			break;
+		}
 	}
-	else if (xstricmp(command, "If") == 0) {
-		result = CommandIf(Runner, CommandLine + pos, Status);
-	}
-	else if (xstricmp(command, "CopyFile") == 0) {
-		result = CommandCopyFile(Runner, CommandLine + pos, Status);
-	}
-	else if (xstricmp(command, "CopyDir") == 0) {
-		result = CommandCopyDir(Runner, CommandLine + pos, Status);
-	}
-	else if (xstricmp(command, "Move") == 0) {
-		result = CommandMove(Runner, CommandLine + pos, Status);
-	}
-	else if (xstricmp(command, "RemoveFile") == 0) {
-		result = CommandRemoveFile(Runner, CommandLine + pos, Status);
-	}
-	else if (xstricmp(command, "RemoveRecurse") == 0) {
-		result = CommandRemoveRecurse(Runner, CommandLine + pos, Status);
-	}
-	else if (xstricmp(command, "RemoveDir") == 0) {
-		result = CommandRemoveDir(Runner, CommandLine + pos, Status);
-	}
-	else if (xstricmp(command, "MakeDir") == 0) {
-		result = CommandMakeDir(Runner, CommandLine + pos, Status);
+
+	if (function) {
+		result = function(Runner, CommandLine + pos, Status);
 	}
 	else {
 		result = WPIW_E_COMMAND_NOT_FOUND;
 	}
+	
 	Runner->ErrorLevel = *Status;
 
 	if (command) 
@@ -305,29 +314,125 @@ cleanup:
 typedef HRESULT(*ONE_ARG_CALLBACK)(char *Arg);
 typedef HRESULT(*TWO_ARG_CALLBACK)(char *Arg1, char *Arg2);
 
+#define CMDRUN_FLAG_BACKGROUND 0x0001
+#define CMDRUN_FLAG_MINIMIZE   0x0002
+#define CMDRUN_FLAG_MAXIMIZE   0x0004
+#define CMDRUN_FLAG_HIDE       0x0008
+
+// Run specified executable
 static HRESULT CommandRun(PCMDRUNNER Runner, char *CommandLine, DWORD *Status)
 {
 	HRESULT result = S_OK;
-	sds application;
+	sds argument = NULL;
 	size_t pos = 0;
+	int flags = 0;
 
 	assert(Status);
 	*Status = 1;
 
-	application = NextToken(CommandLine, &pos);
-	if (!application) {
-		result = E_OUTOFMEMORY;
-		goto exit_fn;
+	do {
+		argument = NextToken(CommandLine, &pos);
+		if (!argument) {
+			result = E_OUTOFMEMORY;
+			goto exit_fn;
+		}
+
+		if (!xstricmp(argument, "/bg")) {
+			flags |= CMDRUN_FLAG_BACKGROUND;
+		}
+		else if (!xstricmp(argument, "/min")) {
+			if (flags & CMDRUN_FLAG_MAXIMIZE || flags & CMDRUN_FLAG_HIDE) {
+				result = E_INVALIDARG;
+				goto cleanup;
+			}
+			flags |= CMDRUN_FLAG_MINIMIZE;
+		}
+		else if (!xstricmp(argument, "/min")) {
+			if (flags & CMDRUN_FLAG_MINIMIZE || flags & CMDRUN_FLAG_HIDE) {
+				result = E_INVALIDARG;
+				goto cleanup;
+			}
+			flags |= CMDRUN_FLAG_MAXIMIZE;
+		}
+		else if (!xstricmp(argument, "/hide")) {
+			if (flags & CMDRUN_FLAG_MINIMIZE || flags & CMDRUN_FLAG_MAXIMIZE) {
+				result = E_INVALIDARG;
+				goto cleanup;
+			}
+			flags |= CMDRUN_FLAG_HIDE;
+		}
+		else {
+			break;
+		}
+
+		sdsfree(argument);
 	}
+	while (1);
 
 	{
 		SHELLEXECUTEINFO sei = { 0 };
 		sei.cbSize = sizeof(SHELLEXECUTEINFO);
 		sei.lpVerb = "open";
-		sei.lpFile = application;
+		sei.lpFile = argument;
 		sei.lpParameters = CommandLine + pos;
-		sei.nShow = SW_SHOW;
-		sei.fMask = SEE_MASK_NOASYNC | SEE_MASK_DOENVSUBST | SEE_MASK_NOCLOSEPROCESS;
+		sei.nShow = SW_NORMAL;
+		sei.fMask = SEE_MASK_DOENVSUBST | SEE_MASK_FLAG_NO_UI;
+		if (!(flags & CMDRUN_FLAG_BACKGROUND))
+			sei.fMask |= SEE_MASK_NOCLOSEPROCESS;
+		if (flags & CMDRUN_FLAG_MAXIMIZE)
+			sei.nShow = SW_SHOWMAXIMIZED;
+		else if (flags & CMDRUN_FLAG_MINIMIZE)
+			sei.nShow = SW_SHOWMINIMIZED;
+		else if (flags & CMDRUN_FLAG_HIDE)
+			sei.nShow = SW_HIDE;
+
+		if (!ShellExecuteEx(&sei)) {
+			result = HRESULT_FROM_WIN32(GetLastError());
+		}
+		else {
+			if (flags & CMDRUN_FLAG_BACKGROUND) {
+				*Status = 0;
+			}
+			else {
+				if (sei.hProcess) {
+					WaitForSingleObject(sei.hProcess, INFINITE);
+					GetExitCodeProcess(sei.hProcess, Status);
+					CloseHandle(sei.hProcess);
+				}
+				else {
+					result = HRESULT_FROM_WIN32(ERROR_INVALID_HANDLE);
+					*Status = 1;
+				}
+			}
+			Runner->ErrorLevel = *Status;
+		}
+	}
+
+cleanup:
+	if (argument) 
+		sdsfree(argument);
+exit_fn:
+	return result;
+}
+
+static HRESULT CommandCmd(PCMDRUNNER Runner, char *CommandLine, DWORD *Status)
+{
+	HRESULT result = S_OK;
+	sds cmdCommandLine = NULL;
+
+	assert(Status);
+	*Status = 1;
+
+	cmdCommandLine = sdscat(sdsnew("/c "), CommandLine);
+
+	{
+		SHELLEXECUTEINFO sei = { 0 };
+		sei.cbSize = sizeof(SHELLEXECUTEINFO);
+		sei.lpVerb = "open";
+		sei.lpFile = "%SystemRoot%\\System32\\cmd.exe";
+		sei.lpParameters = cmdCommandLine;
+		sei.nShow = SW_NORMAL;
+		sei.fMask = SEE_MASK_DOENVSUBST | SEE_MASK_FLAG_NO_UI | SEE_MASK_NOCLOSEPROCESS;
 
 		if (!ShellExecuteEx(&sei)) {
 			result = HRESULT_FROM_WIN32(GetLastError());
@@ -346,7 +451,7 @@ static HRESULT CommandRun(PCMDRUNNER Runner, char *CommandLine, DWORD *Status)
 		}
 	}
 
-	sdsfree(application);
+	sdsfree(cmdCommandLine);
 exit_fn:
 	return result;
 }
@@ -461,14 +566,9 @@ static HRESULT CommandRemoveFile(PCMDRUNNER Runner, char *CommandLine, DWORD *St
 	return CommandOneArg(Runner, CommandLine, Status, OpRemoveFile);
 }
 
-static HRESULT CommandRemoveRecurse(PCMDRUNNER Runner, char *CommandLine, DWORD *Status)
-{
-	return CommandOneArg(Runner, CommandLine, Status, OpRemoveRecurse);
-}
-
 static HRESULT CommandRemoveDir(PCMDRUNNER Runner, char *CommandLine, DWORD *Status)
 {
-	return CommandOneArg(Runner, CommandLine, Status, OpRemoveDirectory);
+	return CommandOneArg(Runner, CommandLine, Status, OpRemoveRecurse);
 }
 
 static HRESULT CommandMakeDir(PCMDRUNNER Runner, char *CommandLine, DWORD *Status)
