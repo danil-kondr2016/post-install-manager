@@ -10,3 +10,5 @@ HRESULT OpRemoveFile(char *File);
 HRESULT OpRemoveRecurse(char *Directory);
 HRESULT OpMakeDirectory(char *Directory);
 HRESULT OpRemoveDirectory(char *Directory);
+
+HRESULT OpRegImport(char *RegistryFile);

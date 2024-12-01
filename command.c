@@ -32,6 +32,7 @@ static HRESULT CommandRemoveDir(PCMDRUNNER Runner, char *CommandLine, DWORD *Sta
 static HRESULT CommandMakeDir(PCMDRUNNER Runner, char *CommandLine, DWORD *Status);
 static HRESULT CommandRun(PCMDRUNNER Runner, char *CommandLine, DWORD *Status);
 static HRESULT CommandCmd(PCMDRUNNER Runner, char *CommandLine, DWORD *Status);
+static HRESULT CommandRegImport(PCMDRUNNER Runner, char *CommandLine, DWORD *Status);
 
 #define CMD_TABLE_ENTRY(name) {#name, Command##name}
 #define CMD_TABLE_END {"", NULL}
@@ -51,6 +52,7 @@ static const struct
 	CMD_TABLE_ENTRY(RemoveFile),
 	CMD_TABLE_ENTRY(RemoveDir),
 	CMD_TABLE_ENTRY(MakeDir),
+	CMD_TABLE_ENTRY(RegImport),
 	CMD_TABLE_END
 };
 
@@ -574,4 +576,9 @@ static HRESULT CommandRemoveDir(PCMDRUNNER Runner, char *CommandLine, DWORD *Sta
 static HRESULT CommandMakeDir(PCMDRUNNER Runner, char *CommandLine, DWORD *Status)
 {
 	return CommandOneArg(Runner, CommandLine, Status, OpMakeDirectory);
+}
+
+static HRESULT CommandRegImport(PCMDRUNNER Runner, char *CommandLine, DWORD *Status)
+{
+	return CommandOneArg(Runner, CommandLine, Status, OpRegImport);
 }
