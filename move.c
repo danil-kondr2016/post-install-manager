@@ -21,7 +21,7 @@ HRESULT OpMoveFile(char *Source, char *Destination)
 		Destination = NewDestination;
 	}
 
-	if (!MoveFile(Source, Destination, FALSE))
+	if (!MoveFileEx(Source, Destination, MOVEFILE_COPY_ALLOWED))
 		result = HRESULT_FROM_WIN32(GetLastError());
 	sdsfree(NewDestination);
 
