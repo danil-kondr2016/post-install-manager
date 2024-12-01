@@ -29,6 +29,7 @@ static HRESULT CommandRemoveFile(PCMDRUNNER Runner, char *CommandLine, DWORD *St
 static HRESULT CommandRemoveRecurse(PCMDRUNNER Runner, char *CommandLine, DWORD *Status);
 static HRESULT CommandRemoveDir(PCMDRUNNER Runner, char *CommandLine, DWORD *Status);
 static HRESULT CommandMakeDir(PCMDRUNNER Runner, char *CommandLine, DWORD *Status);
+static HRESULT CommandRun(PCMDRUNNER Runner, char *CommandLine, DWORD *Status);
 
 static sds NextToken(char *CommandLine, size_t *pos)
 {
@@ -99,11 +100,6 @@ error:
 HRESULT InitCommandRunner(PCMDRUNNER Runner)
 {
 	HRESULT result;
-	
-	result = InitExecutableRunner(&Runner->ExeRunner);
-	if (FAILED(result))
-		return result;
-
 	Runner->ErrorLevel = 0;
 	return S_OK;
 }
@@ -111,11 +107,6 @@ HRESULT InitCommandRunner(PCMDRUNNER Runner)
 HRESULT FreeCommandRunner(PCMDRUNNER Runner)
 {
 	HRESULT result = S_OK;
-
-	result = FreeExecutableRunner(&Runner->ExeRunner);
-	if (FAILED(result))
-		return result;
-
 	Runner->ErrorLevel = 0;
 	return S_OK;
 }
@@ -139,9 +130,7 @@ HRESULT ExecuteCommand(PCMDRUNNER Runner, char *CommandLine, DWORD *Status)
 
 	command = NextToken(CommandLine, &pos);
 	if (xstricmp(command, "Run") == 0) {
-		sds fileName = NextToken(CommandLine, &pos);
-		result = RunExecutable(Runner, fileName, CommandLine + pos, Status);
-		sdsfree(fileName);
+		result = CommandRun(Runner, CommandLine + pos, Status);
 	}
 	else if (xstricmp(command, "If") == 0) {
 		result = CommandIf(Runner, CommandLine + pos, Status);
@@ -315,6 +304,52 @@ cleanup:
 
 typedef HRESULT(*ONE_ARG_CALLBACK)(char *Arg);
 typedef HRESULT(*TWO_ARG_CALLBACK)(char *Arg1, char *Arg2);
+
+static HRESULT CommandRun(PCMDRUNNER Runner, char *CommandLine, DWORD *Status)
+{
+	HRESULT result = S_OK;
+	sds application;
+	size_t pos = 0;
+
+	assert(Status);
+	*Status = 1;
+
+	application = NextToken(CommandLine, &pos);
+	if (!application) {
+		result = E_OUTOFMEMORY;
+		goto exit_fn;
+	}
+
+	{
+		SHELLEXECUTEINFO sei = { 0 };
+		sei.cbSize = sizeof(SHELLEXECUTEINFO);
+		sei.lpVerb = "open";
+		sei.lpFile = application;
+		sei.lpParameters = CommandLine + pos;
+		sei.nShow = SW_SHOW;
+		sei.fMask = SEE_MASK_NOASYNC | SEE_MASK_DOENVSUBST | SEE_MASK_NOCLOSEPROCESS;
+
+		if (!ShellExecuteEx(&sei)) {
+			result = HRESULT_FROM_WIN32(GetLastError());
+		}
+		else {
+			if (sei.hProcess) {
+				WaitForSingleObject(sei.hProcess, INFINITE);
+				GetExitCodeProcess(sei.hProcess, Status);
+				CloseHandle(sei.hProcess);
+			}
+			else {
+				result = HRESULT_FROM_WIN32(ERROR_INVALID_HANDLE);
+				*Status = 1;
+			}
+			Runner->ErrorLevel = *Status;
+		}
+	}
+
+	sdsfree(application);
+exit_fn:
+	return result;
+}
 
 static inline HRESULT CommandOneArg(PCMDRUNNER Runner, char *CommandLine, DWORD *Status, ONE_ARG_CALLBACK cb)
 {

@@ -1,12 +1,10 @@
 #pragma once
 
 #include <windows.h>
-#include "runner.h"
 
 typedef struct CommandRunner CMDRUNNER, *PCMDRUNNER;
 struct CommandRunner
 {
-	EXERUNNER ExeRunner;
 	DWORD     ErrorLevel;
 };
 
