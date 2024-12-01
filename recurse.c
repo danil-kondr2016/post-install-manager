@@ -140,6 +140,9 @@ static HRESULT enum_recursively(LPSTR Source, LPSTR Destination, file_callback b
 			result = cb(NewSource, NewDestination);
 		}
 
+		if (FAILED(result)) // ignore any errors
+			result = S_FALSE;
+
 	cleanup3:
 		if (NewDestination) sdsfree(NewDestination);
 	cleanup2:
