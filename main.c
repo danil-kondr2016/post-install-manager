@@ -33,20 +33,19 @@ void CallAndShowStatus(PCMDRUNNER Runner, char *command)
     free(MessageString);
 }
 
-
 int main(int argc, char **argv)
 {
 	CMDRUNNER Runner = { 0 };
 	DWORD Status;
 
 	InitCommandRunner(&Runner);
-    CallAndShowStatus(&Runner, "Run cmd.exe /c echo Hello && pause");
-    CallAndShowStatus(&Runner, "Run cmd.exe /c echo Test Test && pause");
-    CallAndShowStatus(&Runner, "Run cmd.exe /c echo Test Test Test && pause");
+    CallAndShowStatus(&Runner, "Cmd echo Hello && pause");
+    CallAndShowStatus(&Runner, "Cmd echo Test Test && pause");
+    CallAndShowStatus(&Runner, "Cmd echo Test Test Test && pause");
     CallAndShowStatus(&Runner, "MakeDir d");
-    CallAndShowStatus(&Runner, "Run cmd.exe /c echo a > a");
-    CallAndShowStatus(&Runner, "Run cmd.exe /c echo b > b");
-    CallAndShowStatus(&Runner, "Run cmd.exe /c echo c > c");
+    CallAndShowStatus(&Runner, "Cmd echo a > a");
+    CallAndShowStatus(&Runner, "Cmd echo b > b");
+    CallAndShowStatus(&Runner, "Cmd echo c > c");
     CallAndShowStatus(&Runner, "CopyFile a d");
     CallAndShowStatus(&Runner, "CopyFile b d");
     CallAndShowStatus(&Runner, "CopyFile c d");
