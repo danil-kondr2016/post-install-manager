@@ -140,5 +140,8 @@
     <ClCompile Include="command.c">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
+    <ClCompile Include="registry.c">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
