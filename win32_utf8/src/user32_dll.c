@@ -333,13 +333,22 @@ int WINAPI MessageBoxU_Generic(
 )
 {
 	int ret;
-	WCHAR_T_DEC(lpText);
-	WCHAR_T_DEC(lpCaption);
-	WCHAR_T_CONV(lpText);
-	WCHAR_T_CONV(lpCaption);
-	ret = func(hWnd, lpText_w, lpCaption_w, uType);
-	WCHAR_T_FREE(lpText);
-	WCHAR_T_FREE(lpCaption);
+	size_t lpText_len = lpText ? strlen(lpText) + 1 : 0;
+	size_t lpCaption_len = lpCaption ? strlen(lpCaption) + 1 : 0;
+	VLA(wchar_t, lpText_w, lpText_len);
+	VLA(wchar_t, lpCaption_w, lpCaption_len);
+
+	if (lpText) {
+		StringToUTF16(lpText_w, lpText, lpText_len);
+		lpText = (LPCSTR)lpText_w;
+	}
+
+	if (lpCaption) {
+		StringToUTF16(lpCaption_w, lpCaption, lpCaption_len);
+		lpCaption = (LPCSTR)lpCaption_w;
+	}
+
+	ret = func(hWnd, (LPCWSTR)lpText, (LPCWSTR)lpCaption, uType);
 	return ret;
 }
 
