@@ -61,7 +61,7 @@ static BOOL EnsurePrivateProfileUTF16(LPCWSTR fn)
 	const BYTE BOM_UTF16_LE[] = {0xFF, 0xFE};
 	const BYTE BOM_UTF16_BE[] = {0xFE, 0xFF};
 	const BYTE BOM_UTF8[] = {0xEF, 0xBB, 0xBF};
-
+	
 	BOOL ret = 0;
 	DWORD byte_ret;
 	LARGE_INTEGER file_size;
@@ -1118,6 +1118,26 @@ BOOL WINAPI WriteFileU(
 	}
 	return WriteFile(hFile, lpBuffer, nNumberOfBytesToWrite,
 		lpNumberOfBytesWritten, lpOverlapped);
+}
+
+DWORD WINAPI ExpandEnvironmentStringsU(
+	LPCSTR lpName,
+	LPSTR lpBuffer,
+	DWORD nSize
+)
+{
+	DWORD ret;
+	WCHAR_T_DEC(lpName);
+	VLA(wchar_t, lpBuffer_w, nSize);
+	WCHAR_T_CONV(lpName);
+
+	ExpandEnvironmentStringsW(lpName_w, lpBuffer_w, nSize);
+	// Return the converted size (!)
+	ret = StringToUTF8(lpBuffer, lpBuffer_w, nSize);
+	VLA_FREE(lpBuffer_w);
+	WCHAR_T_FREE(lpName);
+
+	return ret;
 }
 
 // Cleanup

@@ -351,5 +351,13 @@ WRAPPER_DEC(BOOL WINAPI, WritePrivateProfileString,
 #undef WritePrivateProfileString
 #define WritePrivateProfileString WritePrivateProfileStringU
 
+WRAPPER_DEC(DWORD WINAPI, ExpandEnvironmentStrings, 
+	LPCSTR lpSrc, 
+	LPSTR lpDst,
+	DWORD nSize
+);
+#undef ExpandEnvironmentStrings
+#define ExpandEnvironmentStrings ExpandEnvironmentStringsU
+
 // Cleanup
 void kernel32_exit(void);
