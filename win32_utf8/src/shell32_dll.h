@@ -87,3 +87,9 @@ WRAPPER_DEC(HINSTANCE WINAPI, ShellExecute,
 );
 #undef ShellExecute
 #define ShellExecute ShellExecuteU
+
+WRAPPER_DEC(BOOL WINAPI, ShellExecuteEx,
+	SHELLEXECUTEINFOA *pExecInfo
+);
+#undef ShellExecuteEx
+#define ShellExecuteEx ShellExecuteExU

@@ -283,3 +283,53 @@ HINSTANCE WINAPI ShellExecuteU(
 	WCHAR_T_FREE(lpDirectory);
 	return ret;
 }
+
+static inline void SEI_U8toU16(SHELLEXECUTEINFOA *Input, SHELLEXECUTEINFOW *Output)
+{
+#define CONVERT(_name) do { \
+	if (Input->_name) { \
+		size_t _name##_len = strlen(Input->_name) + 1; \
+		Output->_name = w32u8_alloca(wchar_t, _name##_len); \
+		StringToUTF16(Output->_name, Input->_name, _name##_len); \
+	} \
+} while(0)
+
+	Output->cbSize = sizeof(SHELLEXECUTEINFOW);
+	Output->fMask = Input->fMask;
+	Output->hwnd = Input->hwnd;
+	Output->nShow = Input->nShow;
+	Output->lpIDList = Input->lpIDList;
+	Output->hkeyClass = Input->hkeyClass;
+	Output->dwHotKey = Input->dwHotKey;
+	Output->hMonitor = Input->hMonitor;
+
+	CONVERT(lpVerb);
+	CONVERT(lpFile);
+	CONVERT(lpParameters);
+	CONVERT(lpDirectory);
+	CONVERT(lpClass);
+#undef CONVERT
+}
+
+BOOL WINAPI ShellExecuteExU(
+	SHELLEXECUTEINFOA *pExecInfo
+)
+{
+	BOOL ret;
+	SHELLEXECUTEINFOW ExecInfoW = {0};
+	
+	SEI_U8toU16(pExecInfo, &ExecInfoW);
+	
+	ret = ShellExecuteExW(&ExecInfoW);
+
+	if (ExecInfoW.lpVerb) w32u8_freea(ExecInfoW.lpVerb);
+	if (ExecInfoW.lpFile) w32u8_freea(ExecInfoW.lpFile);
+	if (ExecInfoW.lpParameters) w32u8_freea(ExecInfoW.lpParameters);
+	if (ExecInfoW.lpDirectory) w32u8_freea(ExecInfoW.lpDirectory);
+	if (ExecInfoW.lpClass) w32u8_freea(ExecInfoW.lpClass);
+
+	pExecInfo->hInstApp = ExecInfoW.hInstApp;
+	pExecInfo->hProcess = ExecInfoW.hProcess;
+	
+	return ret;
+}
