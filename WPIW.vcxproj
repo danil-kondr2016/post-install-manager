@@ -19,14 +19,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="command.h" />
-    <ClInclude Include="cwalk.h" />
-    <ClInclude Include="operations.h" />
-    <ClInclude Include="sds.h" />
-    <ClInclude Include="sdsalloc.h" />
-    <ClInclude Include="stdafx.h" />
-    <ClInclude Include="tests.h" />
-    <ClInclude Include="utils.h" />
     <ClInclude Include="win32_utf8\src\comdlg32_dll.h" />
     <ClInclude Include="win32_utf8\src\dsound_dll.h" />
     <ClInclude Include="win32_utf8\src\entry.h" />
@@ -46,20 +38,7 @@
     <ClInclude Include="win32_utf8\win32_utf8.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="command.c" />
-    <ClCompile Include="copy.c" />
-    <ClCompile Include="cwalk.c" />
-    <ClCompile Include="delete.c" />
     <ClCompile Include="main.c" />
-    <ClCompile Include="mkdir.c" />
-    <ClCompile Include="move.c" />
-    <ClCompile Include="recurse.c" />
-    <ClCompile Include="registry.c" />
-    <ClCompile Include="rename.c" />
-    <ClCompile Include="sds.c" />
-    <ClCompile Include="stricmp.c" />
-    <ClCompile Include="tests.c" />
-    <ClCompile Include="strtok.c" />
     <ClCompile Include="win32_utf8\entry_main.c" />
     <ClCompile Include="win32_utf8\entry_winmain.c" />
     <ClCompile Include="win32_utf8\src\build.c" />
