@@ -1,3 +1,5 @@
+.PHONY: clean
+
 CPPFLAGS=-Iinclude/
 
 obj/%.o: src/%.cpp
@@ -7,3 +9,6 @@ obj/%.o: src/%.cpp
 obj/%.o: src/%.c
 	@mkdir -p $(@D)
 	$(CC) -c $(CFLAGS) $(CPPFLAGS) -o $@ $<
+
+clean:
+	-rm -rfv obj/ bin/
