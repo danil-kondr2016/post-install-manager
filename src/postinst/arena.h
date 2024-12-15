@@ -21,3 +21,5 @@ uint8_t *arena_alloc(struct arena *arena,
 #define arena_newx(a, b, c, d, ...) d
 #define arena_new2(a, t) (t *)arena_alloc(a, sizeof(t), _Alignof(t), 1)
 #define arena_new3(a, t, n) (t *)arena_alloc(a, sizeof(t), _Alignof(t), n)
+
+wchar_t *u8_to_u16(char *ch, struct arena *arena);
