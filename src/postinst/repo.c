@@ -2,7 +2,6 @@
 #include <windows.h>
 
 #include <string.h>
-#include <csv.h>
 
 struct program *repository_add(struct repository *repo, struct arena *perm)
 {

@@ -5,6 +5,7 @@
 
 #include <string.h>
 #include <windows.h>
+#include <cwalk.h>
 
 typedef uint32_t (*file_callback)(wchar_t *arg1, wchar_t *arg2, struct arena scratch);
 
@@ -22,7 +23,7 @@ static uint32_t enum_recursively(wchar_t *source, wchar_t *dest,
 uint32_t op_copy_dir(char *source, char *dest, struct arena scratch)
 {
 	uint32_t result = 0;
-	char *base_name;
+	const char *base_name;
 	wchar_t *sourceW, *destW;
 
 	cwk_path_get_basename(source, &base_name, NULL);
@@ -30,7 +31,7 @@ uint32_t op_copy_dir(char *source, char *dest, struct arena scratch)
 		size_t new_dest_size;
 		char *new_dest;
 
-		new_dest_size = cwk_path_join(Destination, base_name, NULL, 0);
+		new_dest_size = cwk_path_join(dest, base_name, NULL, 0);
 		new_dest = arena_new(&scratch, char, new_dest_size + 1);
 		cwk_path_join(dest, base_name, new_dest, new_dest_size + 1);
 		
@@ -39,7 +40,7 @@ uint32_t op_copy_dir(char *source, char *dest, struct arena scratch)
 
 	sourceW = u8_to_u16(source, &scratch);
 	destW = u8_to_u16(dest, &scratch);
-	result = enum_recursively(sourceW, destW, create_destination, copy_single, NULL);
+	result = enum_recursively(sourceW, destW, scratch, create_destination, copy_single, NULL);
 
 	return result;
 }
@@ -51,18 +52,18 @@ uint32_t op_remove_dir(char* source, struct arena scratch)
 	return enum_recursively(sourceW, NULL, scratch, NULL, delete_single, delete_folder);
 }
 
-static wchar_t *append_alloc(wchar_t *Path1, wchar_t *Path2, struct arena scratch)
+static wchar_t *append_alloc(wchar_t *Path1, wchar_t *Path2, struct arena *scratch)
 {
 	wchar_t *NewPath;
 	size_t Path1_size, Path2_size;
 
-	Path1_size = strlen(Path1);
-	Path2_size = strlen(Path2);
-	NewPath = arena_new(&scratch, wchar_t, Path1_size + Path2_size + 2);
+	Path1_size = wcslen(Path1);
+	Path2_size = wcslen(Path2);
+	NewPath = arena_new(scratch, wchar_t, Path1_size + Path2_size + 2);
 
 	wcscpy(NewPath, Path1);
 	wcscat(NewPath, L"\\");
-	strcat(NewPath, Path2);
+	wcscat(NewPath, Path2);
 
 	return NewPath;
 }
@@ -76,7 +77,6 @@ static uint32_t enum_recursively(wchar_t *source, wchar_t *dest,
 	WIN32_FIND_DATAW FindData = { 0 };
 	HANDLE hFind;
 	uint32_t result = 0;
-	wchar_t *Pattern = NULL;
 
 	if (begin_cb) {
 		result = begin_cb(source, dest, scratch);
@@ -84,14 +84,14 @@ static uint32_t enum_recursively(wchar_t *source, wchar_t *dest,
 			return result;
 	}
 
-	hFind = FindFirstFileW(sourceW, &FindData);
+	hFind = FindFirstFileW(source, &FindData);
 	if (INVALID_HANDLE_VALUE == hFind) {
 		return 0xC0070000 | (GetLastError() & 0xFFFF);
 	}
 
 	if (FindData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
 		FindClose(hFind);
-		wchar_t *Pattern = append_alloc(source, "*");
+		wchar_t *Pattern = append_alloc(source, L"*", &scratch);
 		
 		hFind = FindFirstFileW(Pattern, &FindData);
 		if (INVALID_HANDLE_VALUE == hFind) {
@@ -112,9 +112,9 @@ static uint32_t enum_recursively(wchar_t *source, wchar_t *dest,
 		if (FindData.cFileName[0] == '.' && FindData.cFileName[1] == '.' && !FindData.cFileName[2])
 			continue;
 
-		new_source = append_alloc(source, FindData.cFileName, scratch);
+		new_source = append_alloc(source, FindData.cFileName, &scratch);
 		if (dest) {
-			new_dest = append_alloc(dest, FindData.cFileName, scratch);
+			new_dest = append_alloc(dest, FindData.cFileName, &scratch);
 		}
 
 		if (FindData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
@@ -127,9 +127,9 @@ static uint32_t enum_recursively(wchar_t *source, wchar_t *dest,
 		if (FAILED(result)) // ignore any errors
 			result = 1;
 	}
-	while (SUCCEEDED(result) && FindNextFile(hFind, &FindData));
+	while (SUCCEEDED(result) && FindNextFileW(hFind, &FindData));
 
-	if (FAILED(result) && uint32_t_CODE(result) == ERROR_NO_MORE_FILES) {
+	if (FAILED(result) && (result & 0xFFFF) == ERROR_NO_MORE_FILES) {
 		result = 0;
 	}
 
@@ -149,7 +149,7 @@ static uint32_t copy_single(wchar_t *source, wchar_t *dest, struct arena scratch
 	return 0;
 }
 
-static uint32_t delete_single(wchar_t *File, wchar_t *unused, struct arena scratch)
+static uint32_t delete_single(wchar_t *file, wchar_t *unused, struct arena scratch)
 {
 	(void)unused;
 	if (!DeleteFileW(file))

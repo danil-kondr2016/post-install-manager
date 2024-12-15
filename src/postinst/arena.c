@@ -55,9 +55,9 @@ wchar_t *u8_to_u16(char *ch, struct arena *arena)
 	DWORD size;
 	wchar_t *result;
 
-	size = MultiByteToWideChar(CP_UTF8, ch, -1, NULL, 0);
+	size = MultiByteToWideChar(CP_UTF8, 0, ch, -1, NULL, 0);
 	result = arena_new(arena, wchar_t, size + 1);
-	MultiByteToWideChar(CP_UTF8, ch, -1, result, size);
+	MultiByteToWideChar(CP_UTF8, 0, ch, -1, result, size);
 
 	return result;
 }

@@ -2,11 +2,12 @@
 #include "tests.h"
 
 #include <windows.h>
+#include <cwalk.h>
 
 uint32_t op_mkdir(char *path, struct arena scratch)
 {
 	uint32_t result = 0;
-	char *full_path, *path_segment, path_segment_end;
+	char *full_path, *path_segment, *path_segment_end;
 	char *Context, *Next;
 	struct cwk_segment segment = { 0 };
 	struct arena old_scratch = scratch;
@@ -22,7 +23,7 @@ uint32_t op_mkdir(char *path, struct arena scratch)
 		path_segment_end = path_segment + segment.size;
 
 		old_scratch = scratch;
-		wchar_t *full_pathW = u8_to_u16(&scratch, full_path);
+		wchar_t *full_pathW = u8_to_u16(full_path, &scratch);
 		if (!CreateDirectoryW(full_pathW, NULL)) {
 			result = 0xC0070000 | (GetLastError() & 0xFFFF);
 			break;
