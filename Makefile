@@ -1,6 +1,7 @@
 .PHONY: clean
 
-CPPFLAGS=-Iinclude/
+CPPFLAGS=-Iinclude/ $(shell pkg-config --cflags expat)
+LDFLAGS=$(shell pkg-config --libs expat)
 
 obj/%.o: src/%.cpp
 	@mkdir -p $(@D)
