@@ -2,6 +2,8 @@
 #include "fileops.h"
 
 #include <windows.h>
+#include <winternl.h>
+#include <stdbool.h>
 
 uint32_t execute_command_chain(union command *cmd, struct arena scratch)
 {
@@ -18,6 +20,9 @@ uint32_t execute_command_chain(union command *cmd, struct arena scratch)
 	return result;
 }
 
+static bool test_arch(uint32_t flags);
+static bool test_os(uint32_t flags);
+
 static uint32_t execute(char *path, char *args, struct arena scratch);
 static uint32_t command(char *line, struct arena scratch);
 static uint32_t alert(char *msg, struct arena scratch);
@@ -29,6 +34,10 @@ uint32_t execute_command(union command *cmd, struct arena scratch)
 
 	if (!cmd)
 		return 0x00000001;
+	if (!test_arch(cmd->arch))
+		return 0x27F10000;
+	if (!test_os(cmd->os))
+		return 0x27F10000;
 
 	switch (cmd->type) {
 	case CMD_EXEC:   result = execute(cmd->exec.path, cmd->exec.args, scratch); break;
@@ -127,4 +136,64 @@ static uint32_t command(char *line, struct arena scratch)
 	}
 
 	return result;
+}
+
+static bool test_arch(uint32_t flags)
+{
+	SYSTEM_INFO info;
+
+	if (!flags)
+		return true;
+	GetNativeSystemInfo(&info);
+
+	switch (info.wProcessorArchitecture) {
+	case PROCESSOR_ARCHITECTURE_INTEL:
+		return (flags & ARCH_X86) != 0;
+	case PROCESSOR_ARCHITECTURE_AMD64:
+		return (flags & ARCH_X64) != 0;
+	case PROCESSOR_ARCHITECTURE_ARM64:
+		return (flags & ARCH_ARM64) != 0;
+	default:
+		return false;
+	}
+}
+
+typedef NTSTATUS (*P_RtlGetVersion)(POSVERSIONINFOW lpVI);
+
+static bool test_os(uint32_t flags)
+{
+	OSVERSIONINFOW osi = {0};
+	P_RtlGetVersion RtlGetVersion = NULL;
+	HMODULE hNtdll;
+
+	if (!flags)
+		return true;
+
+	hNtdll = LoadLibraryA("ntdll.dll");
+	RtlGetVersion = (P_RtlGetVersion)GetProcAddress(hNtdll, "RtlGetVersion");
+	if (NULL == RtlGetVersion)
+		return false;
+
+	osi.dwOSVersionInfoSize = sizeof(osi);
+	RtlGetVersion(&osi);	
+
+	if (osi.dwMajorVersion == 10 && osi.dwMinorVersion == 0) {
+		if (osi.dwBuildNumber >= 22000)
+			return (flags & OS_WIN_11) != 0;
+		else if (osi.dwBuildNumber >= 10240)
+			return (flags & OS_WIN_10) != 0;
+	}
+	else if (osi.dwMajorVersion == 6) {
+		switch (osi.dwMinorVersion) {
+		case 3: return (flags & OS_WIN_8_1) != 0;
+		case 2: return (flags & OS_WIN_8) != 0;
+		case 1: return (flags & OS_WIN_7) != 0;
+		case 0: return (flags & OS_WINVISTA) != 0;
+		}
+	}
+	else if (osi.dwMajorVersion == 5 && osi.dwMinorVersion == 1) {
+		return (flags & OS_WINXP) != 0;
+	}
+
+	return false; // some kind of unrecognized or beta version of OS
 }
