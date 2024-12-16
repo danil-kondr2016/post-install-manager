@@ -338,7 +338,8 @@ void XMLCALL on_char_data(struct parser_state *ps,
 		if (!xstrnicmp(s, "X86", len))
 			ps->cmd->arch |= ARCH_X86;
 		else if (!xstrnicmp(s, "X64", len))
-			ps->cmd->arch |= ARCH_X64;
+			// For Windows 11 ARM64
+			ps->cmd->arch |= ARCH_X64 | ARCH_ARM64;
 		else if (!xstrnicmp(s, "X86_64", len))
 			ps->cmd->arch |= ARCH_X64;
 		else if (!xstrnicmp(s, "X86-64", len))
