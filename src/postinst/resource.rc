@@ -1,0 +1,86 @@
+// resource.rc
+// Этот файл был автоматически создан RisohEditor 5.8.5.
+// † <-- Этот крестик помогает определять UTF-8.
+
+#include "resource.h"
+#define APSTUDIO_HIDDEN_SYMBOLS
+#include <windows.h>
+#include <commctrl.h>
+#undef APSTUDIO_HIDDEN_SYMBOLS
+#pragma code_page(65001) // UTF-8
+
+//////////////////////////////////////////////////////////////////////////////
+
+
+LANGUAGE LANG_RUSSIAN, SUBLANG_DEFAULT
+
+//////////////////////////////////////////////////////////////////////////////
+
+// RT_DIALOG
+
+IDD_PROCESS DIALOG 0, 0, 317, 143
+CAPTION "Установка программ"
+STYLE DS_CENTER | DS_MODALFRAME | WS_POPUPWINDOW | WS_CAPTION
+FONT 9, "MS Shell Dlg"
+{
+    LTEXT "Пожалуйста, подождите...", -1, 21, 7, 276, 8
+    LTEXT "Идет установка программы %s...", IDC_INSTALLING, 21, 22, 276, 8
+    CONTROL "", IDC_PROGRESS, "msctls_progress32", PBS_SMOOTH, 21, 37, 276, 14
+    EDITTEXT IDC_COMMANDS, 21, 58, 276, 81, ES_READONLY | ES_AUTOVSCROLL | ES_MULTILINE
+}
+
+IDD_SELECT DIALOG 0, 0, 317, 143
+CAPTION "Выбор программ"
+STYLE DS_CENTER | DS_MODALFRAME | WS_POPUPWINDOW | WS_CAPTION
+FONT 9, "MS Shell Dlg"
+{
+    CONTROL "", IDC_PROGLIST, "SysListView32", LVS_REPORT | WS_BORDER, 21, 22, 276, 117, LVS_EX_CHECKBOXES
+    LTEXT "Пожалуйста, выберите программы из списка доступных", -1, 21, 7, 275, 8
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+// RT_MESSAGETABLE
+
+#ifdef APSTUDIO_INVOKED
+    #error Ap Studio cannot edit this message table.
+#endif
+#ifdef MCDX_INVOKED
+MESSAGETABLEDX
+{
+    0x27F10000, "Команда была пропущена."
+    0xE7F00001, "Ошибка при обработке таблицы программ."
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////////
+
+// TEXTINCLUDE
+
+#ifdef APSTUDIO_INVOKED
+
+1 TEXTINCLUDE
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE
+BEGIN
+    "#define APSTUDIO_HIDDEN_SYMBOLS\r\n"
+    "#include <windows.h>\r\n"
+    "#include <commctrl.h>\r\n"
+    "#undef APSTUDIO_HIDDEN_SYMBOLS\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+//////////////////////////////////////////////////////////////////////////////
+LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
+1	RT_MANIFEST	"./manifest.xml"
