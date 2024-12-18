@@ -15,8 +15,33 @@ struct program *repository_add(struct repository *repo, struct arena *perm)
 	}
 	else {
 		repo->tail->next = prog;
+		prog->prev = repo->tail;
 		repo->tail = prog;
 	}
 
 	return prog;
+}
+
+void repository_delete(struct repository *repo, struct program *prog)
+{
+	if (repo->head == repo->tail && prog == repo->head) {
+		repo->head = NULL;
+		repo->tail = NULL;
+	}
+	else if (prog == repo->head) {
+		repo->head = repo->head->next;
+		repo->head->prev = NULL;
+	}
+	else if (prog == repo->tail) {
+		repo->tail = repo->tail->prev;
+		repo->tail->next = NULL;
+	}
+	else {
+		struct program *prev, *next;
+		prev = prog->prev;
+		next = prog->next;
+
+		prev->next = next;
+		next->prev = prev;
+	}
 }

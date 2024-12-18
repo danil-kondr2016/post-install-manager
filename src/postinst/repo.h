@@ -117,6 +117,7 @@ enum {
 struct program {
 	char *name;
 	union command *cmd;
+	struct program *prev;
 	struct program *next;
 };
 
@@ -126,6 +127,8 @@ struct repository {
 };
 
 struct program *repository_add(struct repository *repo, struct arena *perm);
+
+void repository_delete(struct repository *repo, struct program *prog);
 
 uint32_t repository_parse(struct repository *repo, char *file_name,
 		struct arena *perm,
