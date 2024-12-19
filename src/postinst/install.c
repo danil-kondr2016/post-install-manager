@@ -4,6 +4,7 @@
 #include "resource.h"
 #include "install.h"
 #include "commands.h"
+#include "fatal.h"
 
 #ifndef PSH_AEROWIZARD
 #define PSH_AEROWIZARD 0x4000
@@ -26,7 +27,6 @@ static void mark_programs(struct installer *installer);
 static INT_PTR CALLBACK select_page_proc(HWND, UINT, WPARAM, LPARAM);
 static INT_PTR CALLBACK install_page_proc(HWND, UINT, WPARAM, LPARAM);
 static DWORD WINAPI installer_thread(struct installer *installer);
-static void fail_message_box(HWND hWnd, DWORD result, struct arena scratch);
 
 uint32_t run_installer(struct installer *installer, struct arena *perm, 
 		struct arena scratch)
@@ -153,7 +153,7 @@ static INT_PTR CALLBACK install_page_proc(HWND hWnd, UINT msg, WPARAM wParam, LP
 			MessageBoxW(hWnd, buffer, L"", MB_ICONHAND);
 		}
 		else if (result != 0xE7F1FFFF) {
-			fail_message_box(hWnd, result, installer->scratch);
+			error_msgW(hWnd, result);
 		}
 		break;
 	}	
@@ -393,45 +393,4 @@ static DWORD WINAPI installer_thread(struct installer *installer)
 
 	installer->scratch = old_scratch;
 	return result;
-}
-
-static void fail_message_box(HWND hWnd, DWORD result, struct arena scratch)
-{
-	HMODULE hNtdll;
-	LPWSTR buffer;
-
-	hNtdll = GetModuleHandleA("ntdll.dll");
-	if (result & 0x0FFF0000 == 0x00070000) {
-		FormatMessage(
-			FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
-			NULL,
-			(result & 0xFFFF),
-			0,
-			(LPWSTR)&buffer,
-			0,
-			NULL);
-	}
-	else if (result & 0x2FF00000 == 0x27F00000) {
-		FormatMessage(
-			FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_HMODULE,
-			NULL,
-			result,
-			0,
-			(LPWSTR)&buffer,
-			0,
-			NULL);
-	}
-	else {
-		FormatMessage(
-			FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_HMODULE,
-			hNtdll,
-			result,
-			0,
-			(LPWSTR)&buffer,
-			0,
-			NULL);
-	}
-
-	MessageBoxW(hWnd, buffer, NULL, MB_ICONHAND);
-	LocalFree(buffer);
 }
