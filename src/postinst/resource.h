@@ -8,6 +8,8 @@
 #define IDC_INSTALLING                      102
 #define IDC_COMMANDS                        103
 
+#define IDS_INSTALLING                      300
+
 #ifdef APSTUDIO_INVOKED
     #ifndef APSTUDIO_READONLY_SYMBOLS
         #define _APS_NO_MFC                 1
