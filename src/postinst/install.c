@@ -117,7 +117,7 @@ static INT_PTR CALLBACK install_page_proc(HWND hWnd, UINT msg, WPARAM wParam, LP
 		SetWindowLongPtrW(hWnd, DWLP_USER, (LONG_PTR)installer);
 		installer->progress_bar = GetDlgItem(hWnd, IDC_PROGRESS);
 		installer->install_page = hWnd;
-		SendMessageW(installer->progress_bar, PBM_SETRANGE32, 0, installer->prog_count);
+		SendMessageW(installer->progress_bar, PBM_SETRANGE32, 0, installer->cmd_count);
 		installer->command_memo = GetDlgItem(hWnd, IDC_COMMANDS);
 		installer->installed_software = GetDlgItem(hWnd, IDC_INSTALLING);
 		installer->thread = CreateThread(NULL, 65536, (LPTHREAD_START_ROUTINE)installer_thread,
@@ -201,12 +201,13 @@ static void mark_programs(struct installer *installer)
 			repository_delete(&installer->repo, (struct program *)item.lParam);
 	}
 
-	installer->prog_count = 0;
+	installer->cmd_count = 0;
 	for (struct program *prog = installer->repo.head;
 			prog;
 			prog = prog->next)
 	{
-		installer->prog_count++;
+		for (union command *cmd = prog->cmd; cmd; cmd = cmd->next)
+			installer->cmd_count++;
 	}
 }
 
@@ -379,10 +380,11 @@ static DWORD WINAPI installer_thread(struct installer *installer)
 				PostMessageW(installer->install_page, IPM_ERROR, 0, result);
 				return result;
 			}
+
+			pos = SendMessageW(installer->progress_bar, PBM_GETPOS, 0, 0);
+			SendMessageW(installer->progress_bar, PBM_SETPOS, pos+1, 0);
 		}	
 
-		pos = SendMessageW(installer->progress_bar, PBM_GETPOS, 0, 0);
-		SendMessageW(installer->progress_bar, PBM_SETPOS, pos+1, 0);
 		SendMessageW(installer->command_memo, LB_ADDSTRING, 0, (LPARAM)complete);
 		SendMessageW(installer->command_memo, LB_ADDSTRING, 0, (LPARAM)L"");
 	}

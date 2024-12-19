@@ -21,7 +21,7 @@ struct installer {
 	HWND install_page;
 	HANDLE thread;
 	
-	intptr_t prog_count;
+	intptr_t cmd_count;
 };
 
 uint32_t run_installer(struct installer *installer, struct arena *perm,
