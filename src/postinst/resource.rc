@@ -19,8 +19,8 @@ LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 // RT_VERSION
 
 1 VERSIONINFO
-FILEVERSION     0, 1, 50, 1
-PRODUCTVERSION  0, 1, 50, 1
+FILEVERSION     0, 1, 50, 0
+PRODUCTVERSION  0, 1, 50, 0
 FILEOS          0x40004
 FILETYPE        0x1
 FILESUBTYPE     0x0
@@ -31,15 +31,15 @@ FILESUBTYPE     0x0
         {
             VALUE "CompanyName", "Danila A. Kondratenko\0"
             VALUE "FileDescription", "Application installation manager\0"
-            VALUE "FileVersion", "0.1.50.1\0"
+            VALUE "FileVersion", "0.1.50.0\0"
             VALUE "LegalCopyright", "Copyright (C) 2024 Danila A. Kondratenko\0"
             VALUE "ProductName", "Post-Install Manager\0"
-            VALUE "ProductVersion", "0.1.50.1\0"
+            VALUE "ProductVersion", "0.1.50.0\0"
         }
     }
     BLOCK "VarFileInfo"
     {
-        VALUE "Translation", 0x0409, 0x04E4
+        VALUE "Translation", 0x0419, 0x04E4
     }
 }
 
@@ -80,6 +80,12 @@ FONT 9, "MS Shell Dlg"
 
 //////////////////////////////////////////////////////////////////////////////
 
+// RT_MESSAGETABLE
+
+0x1 MESSAGETABLE "res/1049_MessageTable_1.bin"
+
+//////////////////////////////////////////////////////////////////////////////
+
 // RT_STRING
 
 STRINGTABLE
@@ -101,21 +107,6 @@ STRINGTABLE
     IDS_CMD_MOVE, "\tПереместить %s в %s"
     IDS_CMD_RENAME, "\tПереименовать %s в %s"
 }
-
-//////////////////////////////////////////////////////////////////////////////
-
-// RT_MESSAGETABLE
-
-#ifdef APSTUDIO_INVOKED
-    #error Ap Studio cannot edit this message table.
-#endif
-#ifdef MCDX_INVOKED
-MESSAGETABLEDX
-{
-    0x27F10000, "Команда была пропущена."
-    0xE7F00001, "Ошибка при обработке таблицы программ."
-}
-#endif
 
 //////////////////////////////////////////////////////////////////////////////
 
