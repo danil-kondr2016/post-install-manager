@@ -5,6 +5,7 @@
 #include "install.h"
 #include "commands.h"
 #include "fatal.h"
+#include "errors.h"
 
 #ifndef PSH_AEROWIZARD
 #define PSH_AEROWIZARD 0x4000
@@ -34,13 +35,13 @@ uint32_t run_installer(struct installer *installer, struct arena *perm,
 	uint32_t result = 0;
 
 	if (!installer)
-		return 0xC000000D;
+		return STATUS_INVALID_PARAMETER;
 
 	if (!GetModuleHandleA("ntdll.dll"))
 		LoadLibraryA("ntdll.dll");
 
 	result = repository_parse(&installer->repo, "pim.xml", perm, scratch);
-	if ((result & 0xC0000000) == 0xC0000000)
+	if (NT_ERROR(result))
 		return result;
 
 	installer->psp[0].dwSize = sizeof(PROPSHEETPAGEW);
@@ -149,10 +150,10 @@ static INT_PTR CALLBACK install_page_proc(HWND hWnd, UINT msg, WPARAM wParam, LP
 		SetDlgItemTextW(hWnd, IDC_STATUS, buffer);
 		SetDlgItemTextW(hWnd, IDC_INSTALLING, L"");
 
-		if (result == 0xC0000001) {
+		if (result == STATUS_UNSUCCESSFUL) {
 			MessageBoxW(hWnd, buffer, L"", MB_ICONHAND);
 		}
-		else if (result != 0xE7F1FFFF) {
+		else if (result != PIM_ERROR_FAIL) {
 			error_msgW(hWnd, result);
 		}
 		break;
@@ -374,7 +375,7 @@ static DWORD WINAPI installer_thread(struct installer *installer)
 			format_cmd(installer, cmd);
 			result = execute_command(prog->cmd, scratch);
 
-			if ((result & 0xC0000000) == 0xC0000000) {
+			if (NT_ERROR(result)) {
 				SendMessageW(installer->command_memo, LB_ADDSTRING, 0, (LPARAM)error);
 				SendMessageW(installer->progress_bar, PBM_SETSTATE, PBST_ERROR, 0);
 				PostMessageW(installer->install_page, IPM_ERROR, 0, result);
@@ -389,7 +390,7 @@ static DWORD WINAPI installer_thread(struct installer *installer)
 		SendMessageW(installer->command_memo, LB_ADDSTRING, 0, (LPARAM)L"");
 	}
 
-	if (result == 0x27F10000) result = 0x00000000;
+	if (result == PIM_STATUS_SKIPPED) result = STATUS_SUCCESS;
 
 	PostMessageW(installer->install_page, IPM_DONE, 0, 0);
 

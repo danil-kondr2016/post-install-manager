@@ -3,6 +3,7 @@
 #include "arena.h"
 #include "fatal.h"
 #include "install.h"
+#include "errors.h"
 
 #include <windows.h>
 #include <commctrl.h>
@@ -22,7 +23,7 @@ int wWinMain(HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPWSTR szCmdLine,
 	installer.scratch = scratch;
 	installer.instance = hThisInstance;
 	result = run_installer(&installer, &perm, scratch);
-	if ((result & 0xC0000000) == 0xC0000000) {
+	if (NT_ERROR(result)) {
 		error_msgW(NULL, result);
 		return 1;
 	}

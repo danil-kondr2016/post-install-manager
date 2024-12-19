@@ -1,5 +1,6 @@
 #include "repo.h"
 #include "tools.h"
+#include "errors.h"
 
 #include <expat.h>
 #include <windows.h>
@@ -128,7 +129,7 @@ uint32_t repository_parse(struct repository *repo, char *file_name,
 		if (!XML_ParseBuffer(parser, read_count, read_count == 0) || ps.state == ST_INVALID) {
 			XML_StopParser(parser, 0);
 			*perm = old_perm;
-			result = 0xE7F00001;
+			result = PIM_ERROR_INVALID_FORMAT;
 			goto cleanup2;
 		}
 

@@ -1,5 +1,6 @@
 #include "commands.h"
 #include "fileops.h"
+#include "errors.h"
 
 #include <windows.h>
 #include <winternl.h>
@@ -11,11 +12,11 @@ uint32_t execute_command_chain(union command *cmd, struct arena scratch)
 
 	for (union command *c = cmd; c; c = c->next) {
 		result = execute_command(cmd, scratch);
-		if ((result & 0xC0000000) == 0xC0000000)
+		if (NT_ERROR(result))
 			break;
 	}
 
-	if (result == 0x27F10000)
+	if (result == PIM_STATUS_SKIPPED)
 		result = 0x00000000;
 	return result;
 }
@@ -35,9 +36,9 @@ uint32_t execute_command(union command *cmd, struct arena scratch)
 	if (!cmd)
 		return 0x00000001;
 	if (!test_arch(cmd->arch))
-		return 0x27F10000;
+		return PIM_STATUS_SKIPPED;
 	if (!test_os(cmd->os))
-		return 0x27F10000;
+		return PIM_STATUS_SKIPPED;
 
 	switch (cmd->type) {
 	case CMD_EXEC:   result = execute(cmd->exec.path, cmd->exec.args, scratch); break;
