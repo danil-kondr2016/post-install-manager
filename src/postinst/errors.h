@@ -11,8 +11,10 @@
 #define IS_PIM(x) (((uint32_t)(x) & UINT32_C(0x2FF00000)) == UINT32_C(0x27F00000))
 #endif
 
+
+
 #ifndef NT_SUCCESS
-#define NT_SUCCESS(status) ((uint32_t) (status) >= 0)
+#define NT_SUCCESS(status) ((int32_t) (status) >= 0)
 #endif
 
 #ifndef NT_INFORMATION
@@ -28,3 +30,5 @@
 #endif
 
 #include <ntstatus.h>
+
+#define NTSTATUS_FROM_WIN32(x) ((int32_t)(x) <= 0 ? ((uint32_t)(x)) : ((uint32_t) (((x) & 0x0000FFFF) | (0xC0070000))))

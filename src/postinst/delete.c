@@ -1,4 +1,6 @@
 #include "fileops.h"
+#include "errors.h"
+
 #include <windows.h>
 
 uint32_t op_remove_file(char *file, struct arena scratch)
@@ -8,7 +10,7 @@ uint32_t op_remove_file(char *file, struct arena scratch)
 
 	fileW = u8_to_u16(file, &scratch);
 	if (!DeleteFileW(fileW))
-		result = 0xC0070000 | (GetLastError() & 0xFFFF);
+		result = NTSTATUS_FROM_WIN32(GetLastError());
 
 	return result;
 }

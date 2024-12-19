@@ -87,7 +87,7 @@ static uint32_t execute(char *path, char *args, struct arena scratch)
 	sei.nShow = SW_NORMAL;
 	
 	if (!ShellExecuteExW(&sei)) {
-		result = 0xC0070000 | (GetLastError() & 0xFFFF);
+		result = NTSTATUS_FROM_WIN32(GetLastError());
 	}
 	else {
 		if (sei.hProcess) {
@@ -128,7 +128,7 @@ static uint32_t command(char *line, struct arena scratch)
 	si.wShowWindow = SW_HIDE;
 	if (!CreateProcessW(cmdPathW, lineW, NULL, NULL, FALSE,
 				CREATE_NEW_CONSOLE, NULL, NULL, &si, &pi)) {
-		result = 0xC0070000 | (GetLastError() & 0xFFFF);		
+		result = NTSTATUS_FROM_WIN32(GetLastError());		
 	}
 	else {
 		WaitForSingleObject(pi.hProcess, INFINITE);

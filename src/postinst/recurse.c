@@ -2,6 +2,7 @@
 
 #include "fileops.h"
 #include "tests.h"
+#include "errors.h"
 
 #include <string.h>
 #include <windows.h>
@@ -86,7 +87,7 @@ static uint32_t enum_recursively(wchar_t *source, wchar_t *dest,
 
 	hFind = FindFirstFileW(source, &FindData);
 	if (INVALID_HANDLE_VALUE == hFind) {
-		return 0xC0070000 | (GetLastError() & 0xFFFF);
+		return NTSTATUS_FROM_WIN32(GetLastError());
 	}
 
 	if (FindData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
@@ -95,12 +96,12 @@ static uint32_t enum_recursively(wchar_t *source, wchar_t *dest,
 		
 		hFind = FindFirstFileW(Pattern, &FindData);
 		if (INVALID_HANDLE_VALUE == hFind) {
-			result = 0xC0070000 | (GetLastError() & 0xFFFF);
+			result = NTSTATUS_FROM_WIN32(GetLastError());
 			return result;
 		}
 	}
 	else {
-		result = 0xC0070000 | ERROR_PATH_NOT_FOUND;
+		result = NTSTATUS_FROM_WIN32(ERROR_PATH_NOT_FOUND);
 		goto cleanup1;
 	}
 
@@ -145,7 +146,7 @@ cleanup1:
 static uint32_t copy_single(wchar_t *source, wchar_t *dest, struct arena scratch)
 {
 	if (!CopyFileW(source, dest, FALSE))
-		return 0xC0070000 | (GetLastError() & 0xFFFF);
+		return NTSTATUS_FROM_WIN32(GetLastError());
 	return 0;
 }
 
@@ -153,7 +154,7 @@ static uint32_t delete_single(wchar_t *file, wchar_t *unused, struct arena scrat
 {
 	(void)unused;
 	if (!DeleteFileW(file))
-		return 0xC0070000 | (GetLastError() & 0xFFFF);
+		return NTSTATUS_FROM_WIN32(GetLastError());
 	return 0;
 }
 
@@ -161,7 +162,7 @@ static uint32_t create_destination(wchar_t *unused, wchar_t *dest, struct arena 
 {
 	(void)unused;
 	if (!CreateDirectoryW(dest, NULL))
-		return 0xC0070000 | (GetLastError() & 0xFFFF);
+		return NTSTATUS_FROM_WIN32(GetLastError());
 	return 0;
 }
 
@@ -169,6 +170,6 @@ static uint32_t delete_folder(wchar_t *source, wchar_t *unused, struct arena scr
 {
 	(void)unused;
 	if (!RemoveDirectoryW(source))
-		return 0xC0070000 | (GetLastError() & 0xFFFF);
+		return NTSTATUS_FROM_WIN32(GetLastError());
 	return 0;
 }

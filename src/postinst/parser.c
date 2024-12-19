@@ -108,7 +108,7 @@ uint32_t repository_parse(struct repository *repo, char *file_name,
 	file = CreateFileW(file_nameW, GENERIC_READ, FILE_SHARE_READ, NULL,
 			OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (INVALID_HANDLE_VALUE == file) {
-		result = 0xC0070000 | (GetLastError() & 0xFFFF);
+		result = NTSTATUS_FROM_WIN32(GetLastError());
 		goto cleanup1;
 	}
 
@@ -122,7 +122,7 @@ uint32_t repository_parse(struct repository *repo, char *file_name,
 
 		if (!ReadFile(file, file_buffer, FILE_BUFFER_SIZE, &read_count, NULL)) {
 			XML_StopParser(parser, 0);
-			result = 0xC0070000 | (GetLastError() & 0xFFFF);
+			result = NTSTATUS_FROM_WIN32(GetLastError());
 			goto cleanup2;
 		}
 

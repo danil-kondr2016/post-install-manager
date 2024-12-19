@@ -1,5 +1,6 @@
 #include "fileops.h"
 #include "tests.h"
+#include "errors.h"
 
 #include <windows.h>
 #include <cwalk.h>
@@ -27,7 +28,7 @@ uint32_t op_mkdir(char *path, struct arena scratch)
 		if (!CreateDirectoryW(full_pathW, NULL)) {
 			DWORD error = GetLastError();
 			if (error != ERROR_ALREADY_EXISTS) {
-				result = 0xC0070000 | (GetLastError() & 0xFFFF);
+				result = NTSTATUS_FROM_WIN32(GetLastError());
 				break;
 			}
 		}

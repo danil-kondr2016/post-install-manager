@@ -1,5 +1,6 @@
 #include "fileops.h"
 #include "tests.h"
+#include "errors.h"
 
 #include <windows.h>
 #include <cwalk.h>
@@ -19,7 +20,7 @@ uint32_t op_rename(char *path, char *new_name, struct arena scratch)
 	new_pathW = u8_to_u16(new_path, &scratch);
 
 	if (!MoveFileW(pathW, new_pathW))
-		result = 0xC0070000 | (GetLastError() & 0xFFFF);
+		result = NTSTATUS_FROM_WIN32(GetLastError());
 
 	return result;
 }
