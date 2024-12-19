@@ -60,14 +60,14 @@ uint32_t execute_command(union command *cmd, struct arena scratch)
 static uint32_t alert(char *msg, struct arena scratch)
 {
 	wchar_t *msgW = u8_to_u16(msg, &scratch);
-	MessageBoxW(NULL, msgW, NULL, MB_ICONEXCLAMATION | MB_OK);
+	MessageBoxW(NULL, msgW, L"", MB_ICONEXCLAMATION | MB_OK);
 	return 0x00000000;
 }
 
 static uint32_t fail(char *msg, struct arena scratch)
 {
 	wchar_t *msgW = u8_to_u16(msg, &scratch);
-	MessageBoxW(NULL, msgW, NULL, MB_ICONEXCLAMATION | MB_OK);
+	MessageBoxW(NULL, msgW, NULL, MB_ICONHAND | MB_OK);
 	return 0xC0000001;
 }
 
