@@ -17,6 +17,9 @@
 #include <vsstyle.h>
 #include <strsafe.h>
 
+#define IPM_DONE (WM_APP + 1)
+#define IPM_ERROR (WM_APP + 2)
+
 static HIMAGELIST create_imglist_checkboxes(HWND hWnd);
 static void load_repository(struct installer *installer);
 static void mark_programs(struct installer *installer);
@@ -107,6 +110,7 @@ static INT_PTR CALLBACK install_page_proc(HWND hWnd, UINT msg, WPARAM wParam, LP
 		installer = (struct installer *)page->lParam;
 		SetWindowLongPtrW(hWnd, DWLP_USER, (LONG_PTR)installer);
 		installer->progress_bar = GetDlgItem(hWnd, IDC_PROGRESS);
+		installer->install_page = hWnd;
 		SendMessageW(installer->progress_bar, PBM_SETRANGE32, 0, installer->prog_count);
 		installer->command_memo = GetDlgItem(hWnd, IDC_COMMANDS);
 		installer->installed_software = GetDlgItem(hWnd, IDC_INSTALLING);
@@ -117,9 +121,18 @@ static INT_PTR CALLBACK install_page_proc(HWND hWnd, UINT msg, WPARAM wParam, LP
 		lpnmhdr = (LPNMHDR)lParam;
 		switch (lpnmhdr->code) {
 		case PSN_SETACTIVE:
+			EnableWindow(GetDlgItem(GetParent(hWnd), IDCANCEL), FALSE);
 			PropSheet_SetWizButtons(GetParent(hWnd), 0);
 			break;
 		}
+		break;
+	case IPM_DONE:
+		PropSheet_SetWizButtons(GetParent(hWnd), PSWIZB_FINISH);
+		MessageBoxW(hWnd, L"Установка завершена.", L"", MB_ICONINFORMATION);
+		break;
+	case IPM_ERROR:
+		PropSheet_SetWizButtons(GetParent(hWnd), PSWIZB_FINISH);
+		MessageBoxW(hWnd, L"При установке произошла ошибка.", L"", MB_ICONINFORMATION);
 		break;
 	}	
 	return FALSE;
@@ -259,14 +272,18 @@ static DWORD WINAPI installer_thread(struct installer *installer)
 
 		result = execute_command_chain(prog->cmd, scratch);
 
-		if ((result & 0xC0000000) == 0xC0000000)
+		if ((result & 0xC0000000) == 0xC0000000) {
+			SendMessageW(installer->install_page, IPM_ERROR, 0, 0);
 			return result;
+		}
 
 		pos = SendMessageW(installer->progress_bar, PBM_GETPOS, 0, 0);
 		SendMessageW(installer->progress_bar, PBM_SETPOS, pos+1, 0);
 	}
 
 	if (result == 0x27F10000) result = 0x00000000;
+
+	SendMessageW(installer->install_page, IPM_DONE, 0, 0);
 
 	installer->scratch = old_scratch;
 	return result;

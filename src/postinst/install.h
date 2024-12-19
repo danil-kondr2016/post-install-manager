@@ -18,6 +18,7 @@ struct installer {
 	HWND progress_bar;
 	HWND command_memo;
 	HWND installed_software;
+	HWND install_page;
 	HANDLE thread;
 	
 	intptr_t prog_count;
