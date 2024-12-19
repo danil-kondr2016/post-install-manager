@@ -19,14 +19,17 @@ uint32_t op_mkdir(char *path, struct arena scratch)
 	do {
 		path_segment = arena_new(&scratch, char, segment.size + 1);
 		memcpy(path_segment, segment.begin, segment.size);
-		if (!full_path) path_segment = full_path;
+		if (!full_path) full_path = path_segment;
 		path_segment_end = path_segment + segment.size;
 
 		old_scratch = scratch;
 		wchar_t *full_pathW = u8_to_u16(full_path, &scratch);
 		if (!CreateDirectoryW(full_pathW, NULL)) {
-			result = 0xC0070000 | (GetLastError() & 0xFFFF);
-			break;
+			DWORD error = GetLastError();
+			if (error != ERROR_ALREADY_EXISTS) {
+				result = 0xC0070000 | (GetLastError() & 0xFFFF);
+				break;
+			}
 		}
 		scratch = old_scratch;
 
