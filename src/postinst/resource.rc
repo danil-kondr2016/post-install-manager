@@ -23,7 +23,7 @@ CAPTION "Установка программ"
 STYLE DS_CENTER | DS_MODALFRAME | WS_POPUPWINDOW | WS_CAPTION
 FONT 9, "MS Shell Dlg"
 {
-    LTEXT "Пожалуйста, подождите...", -1, 21, 7, 276, 8
+    LTEXT "Пожалуйста, подождите...", IDC_STATUS, 21, 7, 276, 8
     LTEXT "Идет установка программы %s...", IDC_INSTALLING, 21, 22, 276, 8
     CONTROL "", IDC_PROGRESS, "msctls_progress32", PBS_SMOOTH, 21, 37, 276, 14
     LISTBOX IDC_COMMANDS, 21, 58, 276, 81, LBS_NOINTEGRALHEIGHT | LBS_USETABSTOPS | LBS_HASSTRINGS | WS_VSCROLL
@@ -47,6 +47,7 @@ STRINGTABLE
     IDS_INSTALLING, "Идет установка программы %s..."
     IDS_COMPLETE, "Установка завершена успешно."
     IDS_ERROR, "При установке произошла ошибка."
+    IDS_COMPLETE_ALL, "Установка всех программ завершена успешно."
     IDS_CMD_NULL, "\t"
     IDS_CMD_EXEC, "\tВыполнить: %s %s"
     IDS_CMD_CMD, "\tВыполнить: %s"

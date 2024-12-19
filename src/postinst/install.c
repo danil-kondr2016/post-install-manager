@@ -108,6 +108,7 @@ static INT_PTR CALLBACK install_page_proc(HWND hWnd, UINT msg, WPARAM wParam, LP
 	struct installer *installer;
 	LPNMHDR lpnmhdr;
 	DWORD result;	
+	WCHAR buffer[1024];
 
 	switch (msg) {
 	case WM_INITDIALOG:
@@ -132,7 +133,11 @@ static INT_PTR CALLBACK install_page_proc(HWND hWnd, UINT msg, WPARAM wParam, LP
 		}
 		break;
 	case IPM_DONE:
+		installer = (struct installer *)GetWindowLongPtrW(hWnd, DWLP_USER);
+		LoadStringW(installer->instance, IDS_COMPLETE_ALL, buffer, 1024);
 		PropSheet_SetWizButtons(GetParent(hWnd), PSWIZB_FINISH);
+		SetDlgItemTextW(hWnd, IDC_STATUS, buffer);
+		SetDlgItemTextW(hWnd, IDC_INSTALLING, L"");
 		MessageBoxW(hWnd, L"Установка завершена.", L"", MB_ICONINFORMATION);
 		break;
 	case IPM_ERROR:
@@ -140,8 +145,12 @@ static INT_PTR CALLBACK install_page_proc(HWND hWnd, UINT msg, WPARAM wParam, LP
 		result = lParam;
 		CloseHandle(installer->thread);
 		PropSheet_SetWizButtons(GetParent(hWnd), PSWIZB_FINISH);
+		LoadStringW(installer->instance, IDS_ERROR, buffer, 1024);
+		SetDlgItemTextW(hWnd, IDC_STATUS, buffer);
+		SetDlgItemTextW(hWnd, IDC_INSTALLING, L"");
+
 		if (result == 0xC0000001) {
-			MessageBoxW(hWnd, L"При установке произошла ошибка.", L"", MB_ICONHAND);
+			MessageBoxW(hWnd, buffer, L"", MB_ICONHAND);
 		}
 		else if (result != 0xE7F1FFFF) {
 			fail_message_box(hWnd, result, installer->scratch);

@@ -7,10 +7,12 @@
 #define IDC_PROGRESS                        101
 #define IDC_INSTALLING                      102
 #define IDC_COMMANDS                        103
+#define IDC_STATUS                          104
 
 #define IDS_INSTALLING                      300
 #define IDS_COMPLETE                        301
 #define IDS_ERROR                           302
+#define IDS_COMPLETE_ALL                    303
 #define IDS_CMD_NULL                        400
 #define IDS_CMD_EXEC                        401
 #define IDS_CMD_CMD                         402
