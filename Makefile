@@ -22,6 +22,7 @@ OBJECTS=obj/cwalk/cwalk.o \
 	obj/postinst/stricmp.o \
 	obj/postinst/postinst.o \
 	obj/postinst/tests.o \
+	obj/postinst/version.o \
 
 postinst.exe: $(OBJECTS)
 	$(CC) -o $@ $(CFLAGS) $(OBJECTS) $(LDFLAGS) -mwindows -municode

@@ -12,6 +12,46 @@
 //////////////////////////////////////////////////////////////////////////////
 
 
+LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
+
+//////////////////////////////////////////////////////////////////////////////
+
+// RT_VERSION
+
+1 VERSIONINFO
+FILEVERSION     0, 1, 50, 0
+PRODUCTVERSION  0, 1, 50, 0
+FILEOS          0x40004
+FILETYPE        0x1
+FILESUBTYPE     0x0
+{
+    BLOCK "StringFileInfo"
+    {
+        BLOCK "040904E4"
+        {
+            VALUE "CompanyName", "Danila A. Kondratenko\0"
+            VALUE "FileDescription", "Application installation manager\0"
+            VALUE "FileVersion", "0.1.50.0\0"
+            VALUE "LegalCopyright", "Copyright (C) 2024 Danila A. Kondratenko\0"
+            VALUE "ProductName", "Post-Install Manager\0"
+            VALUE "ProductVersion", "0.1.50.0\0"
+        }
+    }
+    BLOCK "VarFileInfo"
+    {
+        VALUE "Translation", 0x0409, 0x04E4
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+// RT_MANIFEST
+
+1 24 "res/Manifest_1.manifest"
+
+//////////////////////////////////////////////////////////////////////////////
+
+
 LANGUAGE LANG_RUSSIAN, SUBLANG_DEFAULT
 
 //////////////////////////////////////////////////////////////////////////////
@@ -106,5 +146,4 @@ END
 #endif    // APSTUDIO_INVOKED
 
 //////////////////////////////////////////////////////////////////////////////
-LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
-1	RT_MANIFEST	"./manifest.xml"
+
