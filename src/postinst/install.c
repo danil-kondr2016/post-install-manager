@@ -26,6 +26,7 @@ static void mark_programs(struct installer *installer);
 static INT_PTR CALLBACK select_page_proc(HWND, UINT, WPARAM, LPARAM);
 static INT_PTR CALLBACK install_page_proc(HWND, UINT, WPARAM, LPARAM);
 static DWORD WINAPI installer_thread(struct installer *installer);
+static void fail_message_box(HWND hWnd, DWORD result, struct arena scratch);
 
 uint32_t run_installer(struct installer *installer, struct arena *perm, 
 		struct arena scratch)
@@ -34,6 +35,9 @@ uint32_t run_installer(struct installer *installer, struct arena *perm,
 
 	if (!installer)
 		return 0xC000000D;
+
+	if (!GetModuleHandleA("ntdll.dll"))
+		LoadLibraryA("ntdll.dll");
 
 	result = repository_parse(&installer->repo, "pim.xml", perm, scratch);
 	if ((result & 0xC0000000) == 0xC0000000)
@@ -103,6 +107,7 @@ static INT_PTR CALLBACK install_page_proc(HWND hWnd, UINT msg, WPARAM wParam, LP
 	PROPSHEETPAGE *page;
 	struct installer *installer;
 	LPNMHDR lpnmhdr;
+	DWORD result;	
 
 	switch (msg) {
 	case WM_INITDIALOG:
@@ -131,8 +136,16 @@ static INT_PTR CALLBACK install_page_proc(HWND hWnd, UINT msg, WPARAM wParam, LP
 		MessageBoxW(hWnd, L"Установка завершена.", L"", MB_ICONINFORMATION);
 		break;
 	case IPM_ERROR:
+		installer = (struct installer *)GetWindowLongPtrW(hWnd, DWLP_USER);
+		result = lParam;
+		CloseHandle(installer->thread);
 		PropSheet_SetWizButtons(GetParent(hWnd), PSWIZB_FINISH);
-		MessageBoxW(hWnd, L"При установке произошла ошибка.", L"", MB_ICONINFORMATION);
+		if (result == 0xC0000001) {
+			MessageBoxW(hWnd, L"При установке произошла ошибка.", L"", MB_ICONHAND);
+		}
+		else if (result != 0xE7F1FFFF) {
+			fail_message_box(hWnd, result, installer->scratch);
+		}
 		break;
 	}	
 	return FALSE;
@@ -252,7 +265,7 @@ static DWORD WINAPI installer_thread(struct installer *installer)
 	wchar_t *prog_text, *prog_nameW, *prog_buf;
 	size_t prog_text_size;
 
-	prog_text_size = LoadStringW(installer->instance, IDS_INSTALLING, (LPCWSTR)&prog_text, 0);
+	prog_text_size = LoadStringW(installer->instance, IDS_INSTALLING, (LPWSTR)&prog_text, 0);
 	prog_text = arena_new(&installer->scratch, wchar_t, prog_text_size + 1);
 	LoadStringW(installer->instance, IDS_INSTALLING, prog_text, prog_text_size + 1);
 	for (struct program *prog = installer->repo.head;
@@ -273,7 +286,8 @@ static DWORD WINAPI installer_thread(struct installer *installer)
 		result = execute_command_chain(prog->cmd, scratch);
 
 		if ((result & 0xC0000000) == 0xC0000000) {
-			SendMessageW(installer->install_page, IPM_ERROR, 0, 0);
+			SendMessageW(installer->progress_bar, PBM_SETSTATE, PBST_ERROR, 0);
+			PostMessageW(installer->install_page, IPM_ERROR, 0, result);
 			return result;
 		}
 
@@ -283,8 +297,49 @@ static DWORD WINAPI installer_thread(struct installer *installer)
 
 	if (result == 0x27F10000) result = 0x00000000;
 
-	SendMessageW(installer->install_page, IPM_DONE, 0, 0);
+	PostMessageW(installer->install_page, IPM_DONE, 0, 0);
 
 	installer->scratch = old_scratch;
 	return result;
+}
+
+static void fail_message_box(HWND hWnd, DWORD result, struct arena scratch)
+{
+	HMODULE hNtdll;
+	LPWSTR buffer;
+
+	hNtdll = GetModuleHandleA("ntdll.dll");
+	if (result & 0x0FFF0000 == 0x00070000) {
+		FormatMessage(
+			FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
+			NULL,
+			(result & 0xFFFF),
+			0,
+			(LPWSTR)&buffer,
+			0,
+			NULL);
+	}
+	else if (result & 0x2FF00000 == 0x27F00000) {
+		FormatMessage(
+			FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_HMODULE,
+			NULL,
+			result,
+			0,
+			(LPWSTR)&buffer,
+			0,
+			NULL);
+	}
+	else {
+		FormatMessage(
+			FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_HMODULE,
+			hNtdll,
+			result,
+			0,
+			(LPWSTR)&buffer,
+			0,
+			NULL);
+	}
+
+	MessageBoxW(hWnd, buffer, NULL, MB_ICONHAND);
+	LocalFree(buffer);
 }
