@@ -9,6 +9,20 @@
 #define IDC_COMMANDS                        103
 
 #define IDS_INSTALLING                      300
+#define IDS_COMPLETE                        301
+#define IDS_ERROR                           302
+#define IDS_CMD_NULL                        400
+#define IDS_CMD_EXEC                        401
+#define IDS_CMD_CMD                         402
+#define IDS_CMD_ALERT                       403
+#define IDS_CMD_FAIL                        404
+#define IDS_CMD_CPDIR                       405
+#define IDS_CMD_MKDIR                       406
+#define IDS_CMD_RMDIR                       407
+#define IDS_CMD_CPFILE                      408
+#define IDS_CMD_RMFILE                      409
+#define IDS_CMD_MOVE                        410
+#define IDS_CMD_RENAME                      411
 
 #ifdef APSTUDIO_INVOKED
     #ifndef APSTUDIO_READONLY_SYMBOLS

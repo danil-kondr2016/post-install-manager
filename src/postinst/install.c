@@ -119,7 +119,7 @@ static INT_PTR CALLBACK install_page_proc(HWND hWnd, UINT msg, WPARAM wParam, LP
 		SendMessageW(installer->progress_bar, PBM_SETRANGE32, 0, installer->prog_count);
 		installer->command_memo = GetDlgItem(hWnd, IDC_COMMANDS);
 		installer->installed_software = GetDlgItem(hWnd, IDC_INSTALLING);
-		installer->thread = CreateThread(NULL, 32768, (LPTHREAD_START_ROUTINE)installer_thread,
+		installer->thread = CreateThread(NULL, 65536, (LPTHREAD_START_ROUTINE)installer_thread,
 				(LPVOID)installer, 0, NULL);
 		break;
 	case WM_NOTIFY:
@@ -257,42 +257,125 @@ cleanup1: if (theme)
 exit_fn:  return imglist;
 }
 
+static wchar_t *load_string_resource(HINSTANCE instance, UINT resource, struct arena *arena)
+{
+	size_t size;
+	wchar_t *result;
+
+	size = LoadStringW(instance, resource, (LPWSTR)&result, 0);
+	result = arena_new(arena, wchar_t, size + 1);
+	LoadStringW(instance, resource, result, size + 1);
+
+	return result;
+}
+
+static void format_cmd(struct installer *installer, union command *cmd)
+{
+	if (cmd->type >= CMD_Count)
+		return;
+
+	struct arena scratch = installer->scratch;
+	wchar_t *fmt_str = load_string_resource(installer->instance, IDS_CMD_NULL+cmd->type, &scratch);
+	char *arg1, *arg2 = NULL;
+
+	switch (cmd->type) {
+	case CMD_NULL:
+	case CMD_ALERT:
+	case CMD_FAIL:
+		SendMessageW(installer->command_memo, LB_ADDSTRING, 0, (LPARAM)fmt_str);
+		return;
+	case CMD_CMD: arg1 = cmd->cmd.line; break;
+	case CMD_MKDIR: arg1 = cmd->mkdir.path; break;
+	case CMD_RMDIR: arg1 = cmd->rmdir.path; break;
+	case CMD_RMFILE: arg1 = cmd->rmfile.path; break;
+	case CMD_EXEC:
+		arg1 = cmd->exec.path;
+		arg2 = cmd->exec.args;
+		break;
+	case CMD_CPDIR:
+		arg1 = cmd->cpdir.from;
+		arg2 = cmd->cpdir.to;
+		break;
+	case CMD_CPFILE:
+		arg1 = cmd->cpfile.from;
+		arg2 = cmd->cpfile.to;
+		break;
+	case CMD_MOVE:
+		arg1 = cmd->move.from;
+		arg2 = cmd->move.to;
+		break;
+	case CMD_RENAME:
+		arg1 = cmd->rename.path;
+		arg2 = cmd->rename.newname;
+		break;
+	}
+
+	wchar_t *arg1W = u8_to_u16(arg1, &scratch);
+	wchar_t *arg2W = u8_to_u16(arg2, &scratch);
+	size_t formatted_size = wcslen(arg1W) + wcslen(arg2W) + wcslen(fmt_str) + 1;
+	wchar_t *formatted = arena_new(&scratch, wchar_t, formatted_size);
+	switch (cmd->type) {
+	case CMD_CMD:
+	case CMD_MKDIR:
+	case CMD_RMDIR:
+	case CMD_RMFILE:
+		StringCchPrintfW(formatted, formatted_size, fmt_str, arg1W);
+		break;
+	case CMD_EXEC:
+	case CMD_CPDIR:
+	case CMD_CPFILE:
+	case CMD_MOVE:
+	case CMD_RENAME:
+		StringCchPrintfW(formatted, formatted_size, fmt_str, arg1W, arg2W);
+		break;
+	}
+
+	SendMessageW(installer->command_memo, LB_ADDSTRING, 0, (LPARAM)formatted);
+}
+
 static DWORD WINAPI installer_thread(struct installer *installer)
 {
 	DWORD result = 0;
 	DWORD pos;
 	struct arena old_scratch = installer->scratch;
-	wchar_t *prog_text, *prog_nameW, *prog_buf;
+	wchar_t *prog_text;
 	size_t prog_text_size;
+	wchar_t *complete, *error;
 
 	prog_text_size = LoadStringW(installer->instance, IDS_INSTALLING, (LPWSTR)&prog_text, 0);
 	prog_text = arena_new(&installer->scratch, wchar_t, prog_text_size + 1);
 	LoadStringW(installer->instance, IDS_INSTALLING, prog_text, prog_text_size + 1);
+	complete = load_string_resource(installer->instance, IDS_COMPLETE, &installer->scratch);
+	error = load_string_resource(installer->instance, IDS_ERROR, &installer->scratch);
 	for (struct program *prog = installer->repo.head;
 			prog;
 			prog = prog->next)
 	{
 		struct arena scratch = installer->scratch;
-		wchar_t *prog_nameW, *prog_buf;
-		size_t prog_buf_count;
 
-		prog_nameW = u8_to_u16(prog->name, &scratch);
-		prog_buf_count = prog_text_size + wcslen(prog_nameW) + 1;
-		prog_buf = arena_new(&scratch, wchar_t, prog_buf_count);
+		wchar_t *prog_nameW = u8_to_u16(prog->name, &scratch);
+		size_t prog_buf_count = prog_text_size + wcslen(prog_nameW) + 1;
+		wchar_t *prog_buf = arena_new(&scratch, wchar_t, prog_buf_count);
 		StringCchPrintfW(prog_buf, prog_buf_count, prog_text, prog_nameW);
-
 		SetWindowTextW(installer->installed_software, prog_buf);
+		SendMessageW(installer->command_memo, LB_ADDSTRING, 0, (LPARAM)prog_buf);
+		
+		for (union command *cmd = prog->cmd; cmd; cmd = cmd->next) {
+			format_cmd(installer, cmd);
+			result = execute_command(prog->cmd, scratch);
 
-		result = execute_command_chain(prog->cmd, scratch);
-
-		if ((result & 0xC0000000) == 0xC0000000) {
-			SendMessageW(installer->progress_bar, PBM_SETSTATE, PBST_ERROR, 0);
-			PostMessageW(installer->install_page, IPM_ERROR, 0, result);
-			return result;
-		}
+			if ((result & 0xC0000000) == 0xC0000000) {
+				SendMessageW(installer->command_memo, LB_ADDSTRING, 0, (LPARAM)error);
+				SendMessageW(installer->progress_bar, PBM_SETSTATE, PBST_ERROR, 0);
+				PostMessageW(installer->install_page, IPM_ERROR, 0, result);
+				return result;
+			}
+		}	
 
 		pos = SendMessageW(installer->progress_bar, PBM_GETPOS, 0, 0);
 		SendMessageW(installer->progress_bar, PBM_SETPOS, pos+1, 0);
+		SendMessageW(installer->command_memo, LB_ADDSTRING, 0, (LPARAM)complete);
+		SendMessageW(installer->command_memo, LB_ADDSTRING, 0, (LPARAM)L"");
 	}
 
 	if (result == 0x27F10000) result = 0x00000000;

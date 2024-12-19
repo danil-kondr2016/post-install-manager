@@ -26,7 +26,7 @@ FONT 9, "MS Shell Dlg"
     LTEXT "Пожалуйста, подождите...", -1, 21, 7, 276, 8
     LTEXT "Идет установка программы %s...", IDC_INSTALLING, 21, 22, 276, 8
     CONTROL "", IDC_PROGRESS, "msctls_progress32", PBS_SMOOTH, 21, 37, 276, 14
-    EDITTEXT IDC_COMMANDS, 21, 58, 276, 81, ES_READONLY | ES_AUTOVSCROLL | ES_MULTILINE
+    LISTBOX IDC_COMMANDS, 21, 58, 276, 81, LBS_NOINTEGRALHEIGHT | LBS_USETABSTOPS | LBS_HASSTRINGS | WS_VSCROLL
 }
 
 IDD_SELECT DIALOG 0, 0, 317, 143
@@ -45,6 +45,20 @@ FONT 9, "MS Shell Dlg"
 STRINGTABLE
 {
     IDS_INSTALLING, "Идет установка программы %s..."
+    IDS_COMPLETE, "Установка завершена успешно."
+    IDS_ERROR, "При установке произошла ошибка."
+    IDS_CMD_NULL, "\t"
+    IDS_CMD_EXEC, "\tВыполнить: %s %s"
+    IDS_CMD_CMD, "\tВыполнить: %s"
+    IDS_CMD_ALERT, "\tВывести сообщение"
+    IDS_CMD_FAIL, "\tОшибка"
+    IDS_CMD_CPDIR, "\tКопировать %s в %s"
+    IDS_CMD_MKDIR, "\tСоздать папку %s"
+    IDS_CMD_RMDIR, "\tУдалить %s"
+    IDS_CMD_CPFILE, "\tКопировать %s в %s"
+    IDS_CMD_RMFILE, "\tУдалить %s"
+    IDS_CMD_MOVE, "\tПереместить %s в %s"
+    IDS_CMD_RENAME, "\tПереименовать %s в %s"
 }
 
 //////////////////////////////////////////////////////////////////////////////
