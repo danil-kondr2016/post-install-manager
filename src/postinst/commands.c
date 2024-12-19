@@ -68,7 +68,7 @@ static uint32_t fail(char *msg, struct arena scratch)
 {
 	wchar_t *msgW = u8_to_u16(msg, &scratch);
 	MessageBoxW(NULL, msgW, NULL, MB_ICONHAND | MB_OK);
-	return 0xC0000001;
+	return 0xE7F1FFFF;
 }
 
 static uint32_t execute(char *path, char *args, struct arena scratch)
@@ -169,7 +169,7 @@ static bool test_os(uint32_t flags)
 	if (!flags)
 		return true;
 
-	hNtdll = LoadLibraryA("ntdll.dll");
+	hNtdll = GetModuleHandleA("ntdll.dll");
 	RtlGetVersion = (P_RtlGetVersion)GetProcAddress(hNtdll, "RtlGetVersion");
 	if (NULL == RtlGetVersion)
 		return false;
