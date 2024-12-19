@@ -1,5 +1,9 @@
+#define UNICODE  1
+#define _UNICODE 1
+
 #include "resource.h"
 #include "install.h"
+#include "commands.h"
 
 #ifndef PSH_AEROWIZARD
 #define PSH_AEROWIZARD 0x4000
@@ -11,11 +15,14 @@
 #include <commctrl.h>
 #include <uxtheme.h>
 #include <vsstyle.h>
+#include <strsafe.h>
 
 static HIMAGELIST create_imglist_checkboxes(HWND hWnd);
 static void load_repository(struct installer *installer);
+static void mark_programs(struct installer *installer);
 static INT_PTR CALLBACK select_page_proc(HWND, UINT, WPARAM, LPARAM);
-static INT_PTR CALLBACK PshPageProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+static INT_PTR CALLBACK install_page_proc(HWND, UINT, WPARAM, LPARAM);
+static DWORD WINAPI installer_thread(struct installer *installer);
 
 uint32_t run_installer(struct installer *installer, struct arena *perm, 
 		struct arena scratch)
@@ -41,8 +48,9 @@ uint32_t run_installer(struct installer *installer, struct arena *perm,
 	installer->psp[1].dwFlags = PSP_USEHEADERTITLE;
 	installer->psp[1].hInstance = installer->instance;
 	installer->psp[1].pszHeaderTitle = L"Установка программ";
-	installer->psp[1].pfnDlgProc = PshPageProc;
+	installer->psp[1].pfnDlgProc = install_page_proc;
 	installer->psp[1].pszTemplate = L"IDD_PROCESS";
+	installer->psp[1].lParam = (LPARAM)installer;
 
 	installer->psh.dwSize = sizeof(PROPSHEETHEADERW);
 	installer->psh.dwFlags = PSH_WIZARD97 | PSH_PROPSHEETPAGE;
@@ -50,11 +58,6 @@ uint32_t run_installer(struct installer *installer, struct arena *perm,
 	installer->psh.ppsp = installer->psp;
 
 	PropertySheetW(&installer->psh);
-	return 0;
-}
-
-static INT_PTR CALLBACK PshPageProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
-{
 	return 0;
 }
 
@@ -68,6 +71,7 @@ static INT_PTR CALLBACK select_page_proc(HWND hWnd, UINT msg, WPARAM wParam, LPA
 	case WM_INITDIALOG:
 		page = (PROPSHEETPAGE *)lParam;
 		installer = (struct installer *)page->lParam;
+		SetWindowLongPtrW(hWnd, DWLP_USER, (LONG_PTR)installer);
 		installer->imglist = create_imglist_checkboxes(hWnd);
 		installer->software_list = GetDlgItem(hWnd, IDC_PROGLIST);
 		ListView_SetExtendedListViewStyle(installer->software_list, LVS_EX_CHECKBOXES);
@@ -77,6 +81,11 @@ static INT_PTR CALLBACK select_page_proc(HWND hWnd, UINT msg, WPARAM wParam, LPA
 	case WM_NOTIFY:
 		lpnmhdr = (LPNMHDR)lParam;
 		switch (lpnmhdr->code) {
+		case PSN_WIZNEXT:
+			installer = (struct installer *)GetWindowLongPtrW(hWnd, DWLP_USER);
+			mark_programs(installer);
+			PropSheet_SetWizButtons(GetParent(hWnd), 0);
+			break;
 		case PSN_SETACTIVE:
 			PropSheet_SetWizButtons(GetParent(hWnd), PSWIZB_NEXT);
 			break;
@@ -84,6 +93,37 @@ static INT_PTR CALLBACK select_page_proc(HWND hWnd, UINT msg, WPARAM wParam, LPA
 		break;
 	}	
 	return FALSE;
+}
+
+static INT_PTR CALLBACK install_page_proc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	PROPSHEETPAGE *page;
+	struct installer *installer;
+	LPNMHDR lpnmhdr;
+
+	switch (msg) {
+	case WM_INITDIALOG:
+		page = (PROPSHEETPAGE *)lParam;
+		installer = (struct installer *)page->lParam;
+		SetWindowLongPtrW(hWnd, DWLP_USER, (LONG_PTR)installer);
+		installer->progress_bar = GetDlgItem(hWnd, IDC_PROGRESS);
+		SendMessageW(installer->progress_bar, PBM_SETRANGE32, 0, installer->prog_count);
+		installer->command_memo = GetDlgItem(hWnd, IDC_COMMANDS);
+		installer->installed_software = GetDlgItem(hWnd, IDC_INSTALLING);
+		installer->thread = CreateThread(NULL, 32768, (LPTHREAD_START_ROUTINE)installer_thread,
+				(LPVOID)installer, 0, NULL);
+		break;
+	case WM_NOTIFY:
+		lpnmhdr = (LPNMHDR)lParam;
+		switch (lpnmhdr->code) {
+		case PSN_SETACTIVE:
+			PropSheet_SetWizButtons(GetParent(hWnd), 0);
+			break;
+		}
+		break;
+	}	
+	return FALSE;
+
 }
 
 static void load_repository(struct installer *installer)
@@ -98,15 +138,40 @@ static void load_repository(struct installer *installer)
 	SendMessageW(installer->software_list, LVM_INSERTCOLUMNW, 0, (LPARAM)&column);
 	ListView_SetColumnWidth(installer->software_list, 1, LVSCW_AUTOSIZE);
 
-	item.mask = LVIF_TEXT | LVIF_PARAM | LVIF_STATE;
+	item.mask = LVIF_TEXT | LVIF_PARAM;
 	for (struct program *prog = installer->repo.head; prog; prog = prog->next, i++) {
 		struct arena scratch = installer->scratch;
 		item.pszText = u8_to_u16(prog->name, &scratch);
 		item.lParam = (LPARAM)prog;
-		item.state = INDEXTOSTATEIMAGEMASK(1);
-		item.stateMask = LVIS_STATEIMAGEMASK;
+		item.iItem = i;
 
 		SendMessageW(installer->software_list, LVM_INSERTITEMW, 0, (LPARAM)&item);
+		ListView_SetItemState(installer->software_list, i, 
+				INDEXTOSTATEIMAGEMASK(2),
+				LVIS_STATEIMAGEMASK);
+	}
+}
+
+static void mark_programs(struct installer *installer)
+{
+	int item_count = ListView_GetItemCount(installer->software_list);
+	LVITEM item = {0};
+
+	item.mask = LVIF_PARAM;
+	for (int i = 0; i < item_count; i++) {
+		item.iItem = i;
+		ListView_GetItem(installer->software_list, &item);
+
+		if (!ListView_GetCheckState(installer->software_list, i))
+			repository_delete(&installer->repo, (struct program *)item.lParam);
+	}
+
+	installer->prog_count = 0;
+	for (struct program *prog = installer->repo.head;
+			prog;
+			prog = prog->next)
+	{
+		installer->prog_count++;
 	}
 }
 
@@ -164,4 +229,45 @@ cleanup2: ReleaseDC(hWnd, dc);
 cleanup1: if (theme)
 		  CloseThemeData(theme);
 exit_fn:  return imglist;
+}
+
+static DWORD WINAPI installer_thread(struct installer *installer)
+{
+	DWORD result = 0;
+	DWORD pos;
+	struct arena old_scratch = installer->scratch;
+	wchar_t *prog_text, *prog_nameW, *prog_buf;
+	size_t prog_text_size;
+
+	prog_text_size = LoadStringW(installer->instance, IDS_INSTALLING, (LPCWSTR)&prog_text, 0);
+	prog_text = arena_new(&installer->scratch, wchar_t, prog_text_size + 1);
+	LoadStringW(installer->instance, IDS_INSTALLING, prog_text, prog_text_size + 1);
+	for (struct program *prog = installer->repo.head;
+			prog;
+			prog = prog->next)
+	{
+		struct arena scratch = installer->scratch;
+		wchar_t *prog_nameW, *prog_buf;
+		size_t prog_buf_count;
+
+		prog_nameW = u8_to_u16(prog->name, &scratch);
+		prog_buf_count = prog_text_size + wcslen(prog_nameW) + 1;
+		prog_buf = arena_new(&scratch, wchar_t, prog_buf_count);
+		StringCchPrintfW(prog_buf, prog_buf_count, prog_text, prog_nameW);
+
+		SetWindowTextW(installer->installed_software, prog_buf);
+
+		result = execute_command_chain(prog->cmd, scratch);
+
+		if ((result & 0xC0000000) == 0xC0000000)
+			return result;
+
+		pos = SendMessageW(installer->progress_bar, PBM_GETPOS, 0, 0);
+		SendMessageW(installer->progress_bar, PBM_SETPOS, pos+1, 0);
+	}
+
+	if (result == 0x27F10000) result = 0x00000000;
+
+	installer->scratch = old_scratch;
+	return result;
 }

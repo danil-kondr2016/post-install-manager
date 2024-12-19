@@ -18,6 +18,9 @@ struct installer {
 	HWND progress_bar;
 	HWND command_memo;
 	HWND installed_software;
+	HANDLE thread;
+	
+	intptr_t prog_count;
 };
 
 uint32_t run_installer(struct installer *installer, struct arena *perm,
