@@ -7,7 +7,7 @@
 #include <windows.h>
 #include <commctrl.h>
 
-int main(void)
+int wWinMain(HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPWSTR szCmdLine, int nCmdShow)
 {
 	struct arena perm, scratch;
 	struct installer installer = {0};
@@ -20,7 +20,7 @@ int main(void)
 	scratch = arena_create(8192<<10);
 
 	installer.scratch = scratch;
-	installer.instance = GetModuleHandleW(NULL);
+	installer.instance = hThisInstance;
 	result = run_installer(&installer, &perm, scratch);
 	if ((result & 0xC0000000) == 0xC0000000) {
 		error_msgW(NULL, result);

@@ -20,11 +20,11 @@ OBJECTS=obj/cwalk/cwalk.o \
 	obj/postinst/rename.o \
 	obj/postinst/repo.o \
 	obj/postinst/stricmp.o \
-	obj/postinst/test.o \
+	obj/postinst/postinst.o \
 	obj/postinst/tests.o \
 
-test.exe: $(OBJECTS)
-	$(CC) -o $@ $(CFLAGS) $(OBJECTS) $(LDFLAGS)
+postinst.exe: $(OBJECTS)
+	$(CC) -o $@ $(CFLAGS) $(OBJECTS) $(LDFLAGS) -mwindows -municode
 
 obj/%.o: src/%.cpp
 	@mkdir -p $(@D)
