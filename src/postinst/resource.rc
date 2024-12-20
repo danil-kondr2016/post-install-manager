@@ -3,6 +3,8 @@
 // † <-- Этот крестик помогает определять UTF-8.
 
 #include "resource.h"
+#define RESOURCE_RC
+#include "version.h"
 #define APSTUDIO_HIDDEN_SYMBOLS
 #include <windows.h>
 #include <commctrl.h>
@@ -19,8 +21,8 @@ LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 // RT_VERSION
 
 1 VERSIONINFO
-FILEVERSION     0, 2, 57, 0
-PRODUCTVERSION  0, 2, 57, 0
+FILEVERSION     POSTINST_VERSION_MAJOR, POSTINST_VERSION_MINOR, POSTINST_VERSION_BUILD, POSTINST_VERSION_REV
+PRODUCTVERSION  POSTINST_VERSION_MAJOR, POSTINST_VERSION_MINOR, POSTINST_VERSION_BUILD, POSTINST_VERSION_REV
 FILEOS          0x40004
 FILETYPE        0x1
 FILESUBTYPE     0x0
@@ -31,10 +33,10 @@ FILESUBTYPE     0x0
         {
             VALUE "CompanyName", "Danila A. Kondratenko\0"
             VALUE "FileDescription", "Application installation manager\0"
-            VALUE "FileVersion", "0.2.57.0\0"
+            VALUE "FileVersion", postinst_version "\0"
             VALUE "LegalCopyright", "Copyright (C) 2024 Danila A. Kondratenko\0"
             VALUE "ProductName", "Post-Install Manager\0"
-            VALUE "ProductVersion", "0.2.57.0\0"
+            VALUE "ProductVersion", postinst_version "\0"
         }
     }
     BLOCK "VarFileInfo"
@@ -56,9 +58,57 @@ LANGUAGE LANG_ENGLISH, SUBLANG_DEFAULT
 
 //////////////////////////////////////////////////////////////////////////////
 
+// RT_DIALOG
+
+IDD_PROCESS DIALOG 0, 0, 317, 143
+CAPTION "Installation of programs"
+STYLE DS_CENTER | DS_MODALFRAME | WS_POPUPWINDOW | WS_CAPTION
+FONT 9, "MS Shell Dlg"
+{
+    LTEXT "Please wait...", IDC_STATUS, 21, 7, 276, 8
+    LTEXT "Program %s is installed...", IDC_INSTALLING, 21, 22, 276, 8
+    CONTROL "", IDC_PROGRESS, "msctls_progress32", PBS_SMOOTH, 21, 37, 276, 14
+    LISTBOX IDC_COMMANDS, 21, 58, 276, 81, LBS_NOINTEGRALHEIGHT | LBS_USETABSTOPS | LBS_HASSTRINGS | WS_VSCROLL
+}
+
+IDD_SELECT DIALOG 0, 0, 317, 143
+CAPTION "Selection of programs"
+STYLE DS_CENTER | DS_MODALFRAME | WS_POPUPWINDOW | WS_CAPTION
+FONT 9, "MS Shell Dlg"
+{
+    CONTROL "", IDC_PROGLIST, "SysListView32", LVS_REPORT | WS_BORDER, 21, 22, 276, 117
+    LTEXT "Please select programs to be installed from list of available programs", -1, 21, 7, 275, 8
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
 // RT_MESSAGETABLE
 
 0x1 MESSAGETABLE "res/1033_MessageTable_1.bin"
+
+//////////////////////////////////////////////////////////////////////////////
+
+// RT_STRING
+
+STRINGTABLE
+{
+    IDS_INSTALLING, "Program %s is being installed..."
+    IDS_COMPLETE, "Installation has completed successfully."
+    IDS_ERROR, "An error occured during installation."
+    IDS_COMPLETE_ALL, "All programs has been installed successfully."
+    IDS_CMD_NULL, "\t"
+    IDS_CMD_EXEC, "\tExecute: %s %s"
+    IDS_CMD_CMD, "\tExecute: %s"
+    IDS_CMD_ALERT, "\tShow a message"
+    IDS_CMD_FAIL, "\tError"
+    IDS_CMD_CPDIR, "\tCopy %s into %s"
+    IDS_CMD_MKDIR, "\tMake folder %s"
+    IDS_CMD_RMDIR, "\tRemove %s"
+    IDS_CMD_CPFILE, "\tCopy %s into %s"
+    IDS_CMD_RMFILE, "\tRemove %s"
+    IDS_CMD_MOVE, "\tMove %s into %s"
+    IDS_CMD_RENAME, "\tRemove %s to %s"
+}
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -132,6 +182,8 @@ END
 
 2 TEXTINCLUDE
 BEGIN
+    "#define RESOURCE_RC\r\n"
+    "#include \"version.h\"\r\n"
     "#define APSTUDIO_HIDDEN_SYMBOLS\r\n"
     "#include <windows.h>\r\n"
     "#include <commctrl.h>\r\n"
