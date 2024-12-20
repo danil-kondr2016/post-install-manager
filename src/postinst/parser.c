@@ -295,6 +295,19 @@ void XMLCALL on_element_end(struct parser_state *ps,
 		ps->state = ST_COMMAND;
 		break;
 	case ST_COMMAND:
+		switch (ps->cmd->type) {
+		case CMD_EXEC:
+			if (!ps->cmd->arg1 && !ps->cmd->arg2)
+				ps->state = ST_INVALID;
+			return;
+		case CMD_CPFILE:
+		case CMD_CPDIR:
+		case CMD_MOVE:
+		case CMD_RENAME:	
+			if (!ps->cmd->arg1 || !ps->cmd->arg2)
+				ps->state = ST_INVALID;
+			return;
+		}
 		if (!ps->cmd_head)
 			ps->cmd_tail = ps->cmd_head = ps->cmd;
 		else 
