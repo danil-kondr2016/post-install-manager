@@ -351,11 +351,15 @@ static DWORD WINAPI installer_thread(struct installer *installer)
 			format_cmd(installer, cmd);
 			result = execute_command(prog->cmd, scratch);
 
-			if (result != 0) {
-				result = STATUS_UNSUCCESSFUL;	
+			if (NT_ERROR(result)) {
+				SendMessageW(installer->command_memo, LB_ADDSTRING, 0, (LPARAM)error);
+				SendMessageW(installer->progress_bar, PBM_SETSTATE, PBST_ERROR, 0);
+				PostMessageW(installer->install_page, IPM_ERROR, 0, result);
+				return result;
 			}
 
-			if (NT_ERROR(result)) {
+			if (result > 0 && result <= 255) {
+				result = STATUS_UNSUCCESSFUL;
 				SendMessageW(installer->command_memo, LB_ADDSTRING, 0, (LPARAM)error);
 				SendMessageW(installer->progress_bar, PBM_SETSTATE, PBST_ERROR, 0);
 				PostMessageW(installer->install_page, IPM_ERROR, 0, result);
