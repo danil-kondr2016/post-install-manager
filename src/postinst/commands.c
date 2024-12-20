@@ -17,7 +17,7 @@ uint32_t execute_command_chain(union command *cmd, struct arena scratch)
 	}
 
 	if (result == PIM_STATUS_SKIPPED)
-		result = 0x00000000;
+		result = STATUS_SUCCESS;
 	return result;
 }
 
@@ -34,7 +34,7 @@ uint32_t execute_command(union command *cmd, struct arena scratch)
 	uint32_t result = 0;
 
 	if (!cmd)
-		return 0x00000001;
+		return STATUS_UNSUCCESSFUL;
 	if (!test_arch(cmd->arch))
 		return PIM_STATUS_SKIPPED;
 	if (!test_os(cmd->os))
@@ -52,7 +52,7 @@ uint32_t execute_command(union command *cmd, struct arena scratch)
 	case CMD_RENAME: result = op_move(cmd->rename.path, cmd->rename.newname, scratch); break;
 	case CMD_ALERT:  result = alert(cmd->alert.msg, scratch); break;
 	case CMD_FAIL:   result = fail(cmd->fail.msg, scratch); break;
-	default:         result = 0x00000001;
+	default:         result = STATUS_UNSUCCESSFUL;
 	}
 
 	return result;
@@ -62,14 +62,14 @@ static uint32_t alert(char *msg, struct arena scratch)
 {
 	wchar_t *msgW = u8_to_u16(msg, &scratch);
 	MessageBoxW(NULL, msgW, L"", MB_ICONEXCLAMATION | MB_OK);
-	return 0x00000000;
+	return STATUS_SUCCESS;
 }
 
 static uint32_t fail(char *msg, struct arena scratch)
 {
 	wchar_t *msgW = u8_to_u16(msg, &scratch);
 	MessageBoxW(NULL, msgW, NULL, MB_ICONHAND | MB_OK);
-	return 0xE7F1FFFF;
+	return PIM_ERROR_FAIL;
 }
 
 static uint32_t execute(char *path, char *args, struct arena scratch)
@@ -96,7 +96,7 @@ static uint32_t execute(char *path, char *args, struct arena scratch)
 			CloseHandle(sei.hProcess);
 		}
 		else {
-			result = 0xC0000008;
+			result = STATUS_INVALID_HANDLE;
 		}
 	}
 

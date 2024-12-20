@@ -14,7 +14,7 @@ uint32_t op_mkdir(char *path, struct arena scratch)
 	struct arena old_scratch = scratch;
 
 	if (!cwk_path_get_first_segment(path, &segment))
-		return 1;
+		return 0;
 
 	full_path = NULL;
 	do {
