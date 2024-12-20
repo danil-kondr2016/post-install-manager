@@ -39,5 +39,7 @@ obj/%.o: src/%.rc
 	@mkdir -p $(@D)
 	$(WINDRES) $(CPPFLAGS) -c65001 -o $@ $<
 
+obj/postinst/version.o: src/postinst/version.h
+
 clean:
 	-rm -rfv obj/ bin/
