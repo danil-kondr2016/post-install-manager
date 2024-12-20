@@ -295,34 +295,10 @@ static void format_cmd(struct installer *installer, union command *cmd)
 	case CMD_FAIL:
 		SendMessageW(installer->command_memo, LB_ADDSTRING, 0, (LPARAM)fmt_str);
 		return;
-	case CMD_CMD: arg1 = cmd->cmd.line; break;
-	case CMD_MKDIR: arg1 = cmd->mkdir.path; break;
-	case CMD_RMDIR: arg1 = cmd->rmdir.path; break;
-	case CMD_RMFILE: arg1 = cmd->rmfile.path; break;
-	case CMD_EXEC:
-		arg1 = cmd->exec.path;
-		arg2 = cmd->exec.args;
-		break;
-	case CMD_CPDIR:
-		arg1 = cmd->cpdir.from;
-		arg2 = cmd->cpdir.to;
-		break;
-	case CMD_CPFILE:
-		arg1 = cmd->cpfile.from;
-		arg2 = cmd->cpfile.to;
-		break;
-	case CMD_MOVE:
-		arg1 = cmd->move.from;
-		arg2 = cmd->move.to;
-		break;
-	case CMD_RENAME:
-		arg1 = cmd->rename.path;
-		arg2 = cmd->rename.newname;
-		break;
 	}
 
-	wchar_t *arg1W = u8_to_u16(arg1, &scratch);
-	wchar_t *arg2W = u8_to_u16(arg2, &scratch);
+	wchar_t *arg1W = u8_to_u16(cmd->arg1, &scratch);
+	wchar_t *arg2W = u8_to_u16(cmd->arg2, &scratch);
 	size_t formatted_size = wcslen(arg1W) + wcslen(arg2W) + wcslen(fmt_str) + 1;
 	wchar_t *formatted = arena_new(&scratch, wchar_t, formatted_size);
 	switch (cmd->type) {

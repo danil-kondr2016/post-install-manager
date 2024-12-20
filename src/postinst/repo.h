@@ -84,7 +84,11 @@ struct cmd_rmfile {
 };
 
 union command {
-	struct { Cmd_Header };
+	struct {
+		Cmd_Header
+		char *arg1;
+		char *arg2;
+	};
 	struct cmd_exec   exec;
 	struct cmd_cmd    cmd;
 	struct cmd_fail   fail;
