@@ -19,8 +19,8 @@ LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 // RT_VERSION
 
 1 VERSIONINFO
-FILEVERSION     0, 1, 50, 5
-PRODUCTVERSION  0, 1, 50, 5
+FILEVERSION     0, 1, 50, 6
+PRODUCTVERSION  0, 1, 50, 6
 FILEOS          0x40004
 FILETYPE        0x1
 FILESUBTYPE     0x0
@@ -31,10 +31,10 @@ FILESUBTYPE     0x0
         {
             VALUE "CompanyName", "Danila A. Kondratenko\0"
             VALUE "FileDescription", "Application installation manager\0"
-            VALUE "FileVersion", "0.1.50.5\0"
+            VALUE "FileVersion", "0.1.50.6\0"
             VALUE "LegalCopyright", "Copyright (C) 2024 Danila A. Kondratenko\0"
             VALUE "ProductName", "Post-Install Manager\0"
-            VALUE "ProductVersion", "0.1.50.5\0"
+            VALUE "ProductVersion", "0.1.50.6\0"
         }
     }
     BLOCK "VarFileInfo"
