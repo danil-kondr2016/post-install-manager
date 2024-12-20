@@ -61,3 +61,15 @@ wchar_t *u8_to_u16(char *ch, struct arena *arena)
 
 	return result;
 }
+
+char *u16_to_u8(wchar_t *ch, struct arena *arena)
+{
+	DWORD size;
+	char *result;
+
+	size = WideCharToMultiByte(CP_UTF8, 0, ch, -1, NULL, 0, NULL, NULL);
+	result = arena_new(arena, char, size + 1);
+	WideCharToMultiByte(CP_UTF8, 0, ch, -1, result, size, NULL, NULL);
+
+	return result;
+}
