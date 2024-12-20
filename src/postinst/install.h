@@ -22,6 +22,7 @@ struct installer {
 	HANDLE thread;
 	
 	intptr_t cmd_count;
+	char *pimpath;
 };
 
 uint32_t run_installer(struct installer *installer, struct arena *perm,

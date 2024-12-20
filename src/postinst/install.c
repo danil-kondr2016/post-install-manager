@@ -6,6 +6,7 @@
 #include "commands.h"
 #include "fatal.h"
 #include "errors.h"
+#include "tools.h"
 
 #ifndef PSH_AEROWIZARD
 #define PSH_AEROWIZARD 0x4000
@@ -19,6 +20,8 @@
 #include <vsstyle.h>
 #include <strsafe.h>
 
+#include <stdbool.h>
+
 #define IPM_DONE (WM_APP + 1)
 #define IPM_ERROR (WM_APP + 2)
 
@@ -28,6 +31,10 @@ static void mark_programs(struct installer *installer);
 static INT_PTR CALLBACK select_page_proc(HWND, UINT, WPARAM, LPARAM);
 static INT_PTR CALLBACK install_page_proc(HWND, UINT, WPARAM, LPARAM);
 static DWORD WINAPI installer_thread(struct installer *installer);
+static void init_pimpath(struct installer *installer, struct arena *perm, 
+		struct arena scratch);
+static char *expand_pimpath(struct installer *installer, char *ch, 
+		struct arena *arena);
 
 uint32_t run_installer(struct installer *installer, struct arena *perm, 
 		struct arena scratch)
@@ -40,6 +47,7 @@ uint32_t run_installer(struct installer *installer, struct arena *perm,
 	if (!GetModuleHandleA("ntdll.dll"))
 		LoadLibraryA("ntdll.dll");
 
+	init_pimpath(installer, perm, scratch);
 	result = repository_parse(&installer->repo, "pim.xml", perm, scratch);
 	if (NT_ERROR(result))
 		return result;
@@ -320,6 +328,77 @@ static void format_cmd(struct installer *installer, union command *cmd)
 	SendMessageW(installer->command_memo, LB_ADDSTRING, 0, (LPARAM)formatted);
 }
 
+static void init_pimpath(struct installer *installer, struct arena *perm, 
+		struct arena scratch)
+{
+	wchar_t *output = (wchar_t *)scratch.begin;
+
+	size_t size = (scratch.end - scratch.begin) / 2;
+	GetModuleFileNameW(NULL, output, size);
+
+	wchar_t *last = wcsrchr(output, '\\');
+	if (last) {
+		*last = L'\0';
+	}
+
+	installer->pimpath = u16_to_u8(output, perm);
+}
+
+static char *expand_pimpath(struct installer *installer, char *ch, struct arena *arena)
+{
+	bool inside_percents = false;
+	char *p_begin, *p_end;
+	char *p = ch;
+	size_t length, pimpath_size;
+
+	pimpath_size = strlen(installer->pimpath);
+	length = 0;
+
+	while (*p) {
+		if (!inside_percents && *p == '%') {
+			p_begin = p;
+			inside_percents = true;
+		}
+		else if (inside_percents && *p == '%') {
+			p_end = p;
+			length = length - (p_end - p_begin) + pimpath_size;
+			inside_percents = false;
+		}
+		p++;
+		length++;
+	}
+
+	p = ch;
+	char *result = arena_new(arena, char, length + 1);
+	char *q = result;
+	while (*p) {
+		if (!inside_percents) {
+			if (*p != '%') {
+				*q++ = *p++;
+			}
+			else {
+				p_begin = p++;
+				inside_percents = true;
+			}
+		}
+		else if (inside_percents) {
+			if (*p == '%') {
+				p_end = p++;
+				inside_percents = false;
+				if (!xstrnicmp("%pimpath%", p_begin, 9)) {
+					memcpy(q, installer->pimpath, pimpath_size);
+					q += pimpath_size;
+				}
+			}
+			else {
+				p++;
+			}
+		}
+	}
+
+	return result;
+}
+
 static DWORD WINAPI installer_thread(struct installer *installer)
 {
 	DWORD result = 0;
@@ -348,8 +427,14 @@ static DWORD WINAPI installer_thread(struct installer *installer)
 		SendMessageW(installer->command_memo, LB_ADDSTRING, 0, (LPARAM)prog_buf);
 		
 		for (union command *cmd = prog->cmd; cmd; cmd = cmd->next) {
+			struct arena scratch2 = scratch;
 			format_cmd(installer, cmd);
-			result = execute_command(prog->cmd, scratch);
+
+			union command cmd_edit = *cmd;
+			if (cmd_edit.type == CMD_EXEC) {
+				cmd_edit.arg1 = expand_pimpath(installer, cmd->arg1, &scratch2);
+			}
+			result = execute_command(&cmd_edit, scratch2);
 
 			if (NT_ERROR(result)) {
 				SendMessageW(installer->command_memo, LB_ADDSTRING, 0, (LPARAM)error);
