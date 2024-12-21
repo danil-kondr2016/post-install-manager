@@ -4,6 +4,7 @@
 
 #include <expat.h>
 #include <windows.h>
+#include <stdbool.h>
 
 #define FILE_BUFFER_SIZE 65536
 
@@ -19,6 +20,7 @@ struct parser_state {
 	union command *cmd_head;
 	union command *cmd_tail;
 	uint32_t state;
+	bool has_programs : 1;
 };
 
 enum {
@@ -61,6 +63,7 @@ enum {
 	ST_CMD_RENAME_PATH,
 	ST_CMD_RENAME_NEW_NAME,
 
+	ST_END,
 	ST_INVALID = 0xFFFFFFFFUL
 };
 
@@ -156,8 +159,10 @@ void XMLCALL on_element_start(struct parser_state *ps,
 			ps->state = ST_INVALID;
 		break;
 	case ST_REPO:
-		if (!xstricmp(name, "programs"))
+		if (!ps->has_programs && !xstricmp(name, "programs")) {
 			ps->state = ST_PROGRAMS;
+			ps->has_programs = true;
+		}
 		else
 			ps->state = ST_INVALID;
 		break;
@@ -170,9 +175,9 @@ void XMLCALL on_element_start(struct parser_state *ps,
 			ps->state = ST_INVALID;
 		break;
 	case ST_PROGRAM:
-		if (!xstricmp(name, "name"))
+		if (!ps->prog->name && !xstricmp(name, "name"))
 			ps->state = ST_NAME;
-		else if (!xstricmp(name, "commands"))
+		else if (!ps->prog->cmd && !xstricmp(name, "commands"))
 			ps->state = ST_COMMANDS;
 		else
 			ps->state = ST_INVALID;
@@ -218,14 +223,14 @@ void XMLCALL on_element_start(struct parser_state *ps,
 	case ST_CMD_CPDIR:
 	case ST_CMD_CPFILE:
 	case ST_CMD_MOVE:
-		if (!xstricmp(name, "from")) {
+		if (!ps->cmd->arg1 && !xstricmp(name, "from")) {
 			switch (ps->state) {
 			case ST_CMD_CPDIR: ps->state = ST_CMD_CPDIR_FROM; break;
 			case ST_CMD_CPFILE: ps->state = ST_CMD_CPFILE_FROM; break;
 			case ST_CMD_MOVE: ps->state = ST_CMD_MOVE_FROM; break;
 			}
 		}
-		else if (!xstricmp(name, "to")) {
+		else if (!ps->cmd->arg2 && !xstricmp(name, "to")) {
 			switch (ps->state) {
 			case ST_CMD_CPDIR: ps->state = ST_CMD_CPDIR_TO; break;
 			case ST_CMD_CPFILE: ps->state = ST_CMD_CPFILE_TO; break;
@@ -238,20 +243,23 @@ void XMLCALL on_element_start(struct parser_state *ps,
 		}
 		break;
 	case ST_CMD_RENAME:
-		if (!xstricmp(name, "path"))
+		if (!ps->cmd->arg1 && !xstricmp(name, "path"))
 			ps->state = ST_CMD_RENAME_PATH;
-		else if (!xstricmp(name, "new-name")) 
+		else if (!ps->cmd->arg2 && !xstricmp(name, "new-name")) 
 			ps->state = ST_CMD_RENAME_NEW_NAME;
 		else
 			ps->state = ST_INVALID;
 		break;
 	case ST_CMD_EXEC:
-		if (!xstricmp(name, "file"))
+		if (!ps->cmd->arg1 && !xstricmp(name, "file"))
 			ps->state = ST_CMD_EXEC_FILE;
-		else if (!xstricmp(name, "args"))
+		else if (!ps->cmd->arg2 && !xstricmp(name, "args"))
 			ps->state = ST_CMD_EXEC_ARGS;
 		else
 			ps->state = ST_INVALID;
+		break;
+	default:
+		ps->state = ST_INVALID;
 		break;
 	}
 }
@@ -334,7 +342,7 @@ void XMLCALL on_element_end(struct parser_state *ps,
 		ps->state = ST_REPO;
 		break;
 	case ST_REPO:
-		ps->state = ST_INIT;
+		ps->state = ST_END;
 		break;
 	default:
 		ps->state = ST_INVALID;
