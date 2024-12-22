@@ -45,6 +45,7 @@ deps/%.d: src/%.c
 	$(CC) $(CPPFLAGS) -MM $< -MT $(patsubst src/%.c,obj/%.o,$<) | sed 's|^|$@ |' > $@
 
 obj/postinst/resource.o: src/postinst/version.h
+obj/postinst/version.o: src/postinst/version.h
 
 clean:
 	-rm -rfv obj/ bin/ deps/
