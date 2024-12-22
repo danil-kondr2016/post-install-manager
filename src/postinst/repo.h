@@ -145,6 +145,7 @@ struct category {
 
 struct program {
 	char *name;
+	char *category;
 	union command *cmd;
 	struct program *prev;
 	struct program *next;

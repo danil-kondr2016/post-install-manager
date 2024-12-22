@@ -61,8 +61,7 @@ void repository_add_category(struct repository *repo,
 	find(&result, category->name, perm);
 	result->type = NODE_CATEGORY;
 	result->cat = arena_new(perm, struct category);
-	result->cat->name = arena_new(perm, char, name_len + 1);
-	memcpy(result->cat->name, category->name, name_len);
+	result->cat->name = category->name;
 }
 
 struct category *repository_get_category(struct repository *repo,

@@ -19,18 +19,27 @@ struct parser_state {
 	union command *cmd;
 	union command *cmd_head;
 	union command *cmd_tail;
+	struct category cat;
 	uint32_t state;
 	bool has_programs : 1;
+	bool has_categories : 1;
 };
 
 enum {
 	ST_INIT,
 	ST_REPO,
+	
+	ST_CATEGORIES,
+	ST_CAT,
+	ST_CAT_NAME,
+
 	ST_PROGRAMS,
-	ST_PROGRAM,
-	ST_NAME,
-	ST_COMMANDS,
-	ST_COMMAND,
+	ST_PROG,
+	ST_PROG_NAME,
+	ST_PROG_CAT,
+
+	ST_CMDS,
+	ST_CMD,
 
 	ST_CMD_ARCH,
 	ST_CMD_OS,
@@ -163,34 +172,54 @@ void XMLCALL on_element_start(struct parser_state *ps,
 			ps->state = ST_PROGRAMS;
 			ps->has_programs = true;
 		}
+		else if (!ps->has_categories && !xstricmp(name, "categories")) {
+			ps->state = ST_CATEGORIES;
+			ps->has_categories = true;
+		}
+		else
+			ps->state = ST_INVALID;
+		break;
+	case ST_CATEGORIES:
+		if (!xstricmp(name, "category")) {
+			ps->state = ST_CAT;
+		}
+		else
+			ps->state = ST_INVALID;
+		break;
+	case ST_CAT:
+		if (!ps->cat.name && !xstricmp(name, "name")) {
+			ps->state = ST_CAT_NAME;
+		}
 		else
 			ps->state = ST_INVALID;
 		break;
 	case ST_PROGRAMS:
 		if (!xstricmp(name, "program")) {
-			ps->state = ST_PROGRAM;
+			ps->state = ST_PROG;
 			ps->prog = repository_add(ps->repo, ps->perm);
 		}
 		else
 			ps->state = ST_INVALID;
 		break;
-	case ST_PROGRAM:
+	case ST_PROG:
 		if (!ps->prog->name && !xstricmp(name, "name"))
-			ps->state = ST_NAME;
+			ps->state = ST_PROG_NAME;
+		else if (!ps->prog->category && !xstricmp(name, "category"))
+			ps->state = ST_PROG_CAT;
 		else if (!ps->prog->cmd && !xstricmp(name, "commands"))
-			ps->state = ST_COMMANDS;
+			ps->state = ST_CMDS;
 		else
 			ps->state = ST_INVALID;
 		break;
-	case ST_COMMANDS:
+	case ST_CMDS:
 		if (!xstricmp(name, "command")) {
-			ps->state = ST_COMMAND;
+			ps->state = ST_CMD;
 			ps->cmd = arena_new(ps->perm, union command);
 		}
 		else
 			ps->state = ST_INVALID;
 		break;
-	case ST_COMMAND:
+	case ST_CMD:
 		if (!xstricmp(name, "arch"))
 			ps->state = ST_CMD_ARCH;
 		else if (!xstricmp(name, "os"))
@@ -316,22 +345,22 @@ void XMLCALL on_element_end(struct parser_state *ps,
 				return;
 			}
 		}
-		ps->state = ST_COMMAND;
+		ps->state = ST_CMD;
 		break;
-	case ST_COMMAND:
+	case ST_CMD:
 		if (!ps->cmd_head)
 			ps->cmd_tail = ps->cmd_head = ps->cmd;
 		else 
 			ps->cmd_tail->next = ps->cmd, 
 				ps->cmd_tail = ps->cmd_tail->next;
-		ps->state = ST_COMMANDS;
+		ps->state = ST_CMDS;
 		break;
-	case ST_COMMANDS:
+	case ST_CMDS:
 		ps->prog->cmd = ps->cmd_head;
-	case ST_NAME:
-		ps->state = ST_PROGRAM;
+	case ST_PROG_NAME:
+		ps->state = ST_PROG;
 		break;
-	case ST_PROGRAM:
+	case ST_PROG:
 		ps->state = ST_PROGRAMS;
 		ps->cmd = NULL;
 		ps->cmd_head = NULL;
@@ -340,6 +369,14 @@ void XMLCALL on_element_end(struct parser_state *ps,
 		break;
 	case ST_PROGRAMS:
 		ps->state = ST_REPO;
+		break;
+	case ST_CAT_NAME:
+		ps->state = ST_CAT;
+		break;
+	case ST_CAT:
+		repository_add_category(ps->repo, &ps->cat, ps->perm);
+		ps->cat.name = NULL;
+		ps->state = ST_CATEGORIES;
 		break;
 	case ST_REPO:
 		ps->state = ST_END;
@@ -401,7 +438,9 @@ void XMLCALL on_char_data(struct parser_state *ps,
 	}
 
 	switch (ps->state) {
-	case ST_NAME:            ps->prog->name       = string; break;
+	case ST_CAT_NAME:        ps->cat.name         = string; break;
+	case ST_PROG_NAME:       ps->prog->name       = string; break;
+	case ST_PROG_CAT:        ps->prog->category   = string; break;
 	case ST_CMD_MKDIR:       ps->cmd->mkdir.path  = string; break;
 	case ST_CMD_RMDIR:       ps->cmd->rmdir.path  = string; break;
 	case ST_CMD_RMFILE:      ps->cmd->rmfile.path = string; break;
