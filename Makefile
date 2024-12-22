@@ -24,7 +24,8 @@ OBJECTS=obj/cwalk/cwalk.o \
 	obj/postinst/tests.o \
 	obj/postinst/version.o \
 
-postinst.exe: $(OBJECTS)
+bin/postinst.exe: $(OBJECTS)
+	@mkdir -p $(@D)
 	$(CC) -o $@ $(CFLAGS) $(OBJECTS) $(LDFLAGS) -mwindows -municode
 
 obj/%.o: src/%.cpp
@@ -39,7 +40,13 @@ obj/%.o: src/%.rc
 	@mkdir -p $(@D)
 	$(WINDRES) $(CPPFLAGS) -c65001 -o $@ $<
 
-obj/postinst/version.o: src/postinst/version.h
+deps/%.d: src/%.c
+	@mkdir -p $(@D)
+	$(CC) $(CPPFLAGS) -MM $< -MT $(patsubst src/%.c,obj/%.o,$<) | sed 's|^|$@ |' > $@
+
+obj/postinst/resource.o: src/postinst/version.h
 
 clean:
-	-rm -rfv obj/ bin/
+	-rm -rfv obj/ bin/ deps/
+
+-include $(wildcard deps/**/*.d)
