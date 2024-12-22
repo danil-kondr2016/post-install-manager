@@ -358,6 +358,7 @@ void XMLCALL on_element_end(struct parser_state *ps,
 	case ST_CMDS:
 		ps->prog->cmd = ps->cmd_head;
 	case ST_PROG_NAME:
+	case ST_PROG_CAT:
 		ps->state = ST_PROG;
 		break;
 	case ST_PROG:
