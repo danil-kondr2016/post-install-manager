@@ -1,6 +1,7 @@
 #pragma once
 
 #include "arena.h"
+#include <stdbool.h>
 
 union command;
 
@@ -118,6 +119,30 @@ enum {
 	CMD_Count
 };
 
+struct category;
+struct program;
+
+enum {
+	NODE_NULL,
+	NODE_CATEGORY,
+
+	NODE_Count
+};
+
+struct node {
+	uint32_t hash;
+	uint32_t type;
+	union {
+		void *value;
+		struct category *cat;
+	};
+	struct node *child[2];
+};
+
+struct category {
+	char *name;
+};
+
 struct program {
 	char *name;
 	union command *cmd;
@@ -126,11 +151,18 @@ struct program {
 };
 
 struct repository {
+	struct node *categories;
 	struct program *head;
 	struct program *tail;
 };
 
 struct program *repository_add(struct repository *repo, struct arena *perm);
+
+void repository_add_category(struct repository *repo, 
+		struct category *category, struct arena *perm);
+
+struct category *repository_get_category(struct repository *repo,
+		char *name);
 
 void repository_delete(struct repository *repo, struct program *prog);
 
