@@ -378,6 +378,9 @@ void XMLCALL on_element_end(struct parser_state *ps,
 		ps->cat.name = NULL;
 		ps->state = ST_CATEGORIES;
 		break;
+	case ST_CATEGORIES:
+		ps->state = ST_REPO;
+		break;
 	case ST_REPO:
 		ps->state = ST_END;
 		break;

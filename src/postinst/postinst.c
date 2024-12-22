@@ -1,5 +1,3 @@
-#include <stdio.h>
-
 #include "arena.h"
 #include "fatal.h"
 #include "install.h"
