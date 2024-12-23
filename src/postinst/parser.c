@@ -87,6 +87,8 @@ void XMLCALL on_char_data(struct parser_state *ps,
 		const XML_Char *s,
 		int len);
 
+bool validate_categories(struct repository *repo);
+
 uint32_t repository_parse(struct repository *repo, char *file_name,
 		struct arena *perm,
 		struct arena scratch)
@@ -140,6 +142,8 @@ uint32_t repository_parse(struct repository *repo, char *file_name,
 
 		if (!XML_ParseBuffer(parser, read_count, read_count == 0) || ps.state == ST_INVALID) {
 			XML_StopParser(parser, 0);
+
+			memset(repo, 0, sizeof(*repo));
 			*perm = old_perm;
 			result = PIM_ERROR_INVALID_FORMAT;
 			goto cleanup2;
@@ -149,11 +153,30 @@ uint32_t repository_parse(struct repository *repo, char *file_name,
 			break;
 	}
 
+	if (!validate_categories(repo)) {
+		memset(repo, 0, sizeof(*repo));
+		*perm = old_perm;
+		result = PIM_ERROR_INVALID_FORMAT;
+	}
+
 cleanup2:
 	CloseHandle(file);
 cleanup1:
 	XML_ParserFree(parser);
 	return result;
+}
+
+bool validate_categories(struct repository *repo)
+{
+	for (struct program *prog = repo->head; prog; prog = prog->next) {
+		if (!prog->category)
+			continue;
+
+		if (!repository_get_category(repo, prog->category))
+			return false;
+	}
+
+	return true;
 }
 
 void XMLCALL on_element_start(struct parser_state *ps,
