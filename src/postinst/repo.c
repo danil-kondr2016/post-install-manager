@@ -58,7 +58,7 @@ void repository_add_category(struct repository *repo,
 	size_t name_len;
 
 	name_len = strlen(category->name);
-	find(&result, category->name, perm);
+	result = find(&result, category->name, perm);
 	result->type = NODE_CATEGORY;
 	result->cat = arena_new(perm, struct category);
 	result->cat->name = category->name;
@@ -71,7 +71,7 @@ struct category *repository_get_category(struct repository *repo,
 {
 	struct node *tree = repo->categories;
 
-	if (find(&tree, name, NULL) && tree->type == NODE_CATEGORY)
+	if ((tree = find(&tree, name, NULL)) && tree->type == NODE_CATEGORY)
 		return tree->cat;
 	return NULL;
 }
