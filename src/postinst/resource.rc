@@ -76,7 +76,7 @@ CAPTION "Selection of programs"
 STYLE DS_CENTER | DS_MODALFRAME | WS_POPUPWINDOW | WS_CAPTION
 FONT 9, "MS Shell Dlg"
 {
-    CONTROL "", IDC_PROGLIST, "SysListView32", LVS_REPORT | WS_BORDER, 21, 22, 276, 117
+    CONTROL "", IDC_PROGLIST, "SysListView32", LVS_REPORT | LVS_ALIGNTOP | WS_BORDER, 21, 22, 276, 117
     LTEXT "Please select programs to be installed from list of available programs", -1, 21, 7, 275, 8
 }
 
