@@ -21,6 +21,7 @@ struct parser_state {
 	union command *cmd_tail;
 	struct category cat;
 	uint32_t state;
+	uint32_t category_counter;
 	bool has_programs : 1;
 	bool has_categories : 1;
 };
@@ -398,6 +399,7 @@ void XMLCALL on_element_end(struct parser_state *ps,
 		ps->state = ST_CAT;
 		break;
 	case ST_CAT:
+		ps->cat.id = ++ps->category_counter;
 		repository_add_category(ps->repo, &ps->cat, ps->perm);
 		ps->cat.name = NULL;
 		ps->state = ST_CATEGORIES;

@@ -170,11 +170,53 @@ static INT_PTR CALLBACK install_page_proc(HWND hWnd, UINT msg, WPARAM wParam, LP
 
 }
 
+static void create_group_0(struct installer *installer, struct arena scratch)
+{
+	LVGROUP group = {0};
+
+	group.cbSize = sizeof(group);
+	group.mask = LVGF_HEADER | LVGF_GROUPID | LVGF_STATE;
+	group.state = group.stateMask = LVGS_NORMAL | LVGS_COLLAPSIBLE;
+	group.iGroupId = 0;
+	group.pszHeader = L"По умолчанию";
+	group.cchHeader = wcslen(group.pszHeader);
+	ListView_InsertGroup(installer->software_list, -1, &group);
+}
+
+static void load_groups(struct installer *installer, 
+		struct node *cat, struct arena scratch)
+{
+	LVGROUP group = {0};
+	int ret;
+
+	if (!cat)
+		return;
+
+	load_groups(installer, cat->child[0], scratch);
+
+	group.cbSize = sizeof(group);
+	group.mask = LVGF_HEADER | LVGF_GROUPID | LVGF_STATE;
+	group.state = group.stateMask = LVGS_NORMAL | LVGS_COLLAPSIBLE;
+	if (cat->type == NODE_CATEGORY) {
+		group.pszHeader = u8_to_u16(cat->cat->name, &scratch);
+		group.cchHeader = wcslen(group.pszHeader);
+		group.iGroupId = cat->cat->id;
+
+		ret = ListView_InsertGroup(installer->software_list, -1, &group);
+	}
+
+	load_groups(installer, cat->child[1], scratch);
+}
+
 static void load_repository(struct installer *installer)
 {
 	LVCOLUMNW column = {0};
 	LVITEMW item = {0};
 	int i = 0;
+
+	int ret = ListView_EnableGroupView(installer->software_list, TRUE);
+	load_groups(installer, installer->repo.categories, installer->scratch);
+	create_group_0(installer, installer->scratch);
 
 	column.mask = LVCF_FMT | LVCF_TEXT | LVCF_WIDTH;
 	column.pszText = L"Название";
@@ -193,6 +235,18 @@ static void load_repository(struct installer *installer)
 		ListView_SetItemState(installer->software_list, i, 
 				INDEXTOSTATEIMAGEMASK(2),
 				LVIS_STATEIMAGEMASK);
+	}
+
+	int item_count = ListView_GetItemCount(installer->software_list);
+	item.mask = LVIF_PARAM | LVIF_GROUPID;
+	for (int i = 0; i < item_count; i++) {
+		item.iItem = i;
+		ListView_GetItem(installer->software_list, &item);
+
+		struct program *prog = (struct program *)item.lParam;		
+		struct category *cat = repository_get_category(&installer->repo, prog->category);
+		item.iGroupId = cat ? cat->id : 0;
+		ListView_SetItem(installer->software_list, &item);
 	}
 }
 

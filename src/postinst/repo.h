@@ -141,6 +141,7 @@ struct node {
 
 struct category {
 	char *name;
+	uint32_t id;
 };
 
 struct program {
