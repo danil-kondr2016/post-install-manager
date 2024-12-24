@@ -211,15 +211,18 @@ static void load_groups(struct installer *installer,
 	load_groups(installer, cat->child[1], scratch);
 }
 
+static void assign_groups(struct installer *installer);
 static void load_repository(struct installer *installer)
 {
 	LVCOLUMNW column = {0};
 	LVITEMW item = {0};
 	int i = 0;
 
-	int ret = ListView_EnableGroupView(installer->software_list, TRUE);
-	load_groups(installer, installer->repo.categories, installer->scratch);
-	create_group_0(installer, installer->scratch);
+	if (installer->repo.categories) {
+		ListView_EnableGroupView(installer->software_list, TRUE);
+		load_groups(installer, installer->repo.categories, installer->scratch);
+		create_group_0(installer, installer->scratch);
+	}
 
 	WCHAR name_string[256];
 	LoadStringW(installer->instance, IDS_NAME, name_string, 256);
@@ -243,7 +246,15 @@ static void load_repository(struct installer *installer)
 				LVIS_STATEIMAGEMASK);
 	}
 
+	if (installer->repo.categories)
+		assign_groups(installer);
+}
+
+static void assign_groups(struct installer *installer)
+{
 	int item_count = ListView_GetItemCount(installer->software_list);
+	LVITEM item = {0};
+
 	item.mask = LVIF_PARAM | LVIF_GROUPID;
 	for (int i = 0; i < item_count; i++) {
 		item.iItem = i;

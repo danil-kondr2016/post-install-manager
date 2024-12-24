@@ -169,6 +169,9 @@ cleanup1:
 
 bool validate_categories(struct repository *repo)
 {
+	if (!repo->categories)
+		return true;
+
 	for (struct program *prog = repo->head; prog; prog = prog->next) {
 		if (!prog->category)
 			continue;
