@@ -58,7 +58,7 @@ uint32_t run_installer(struct installer *installer, struct arena *perm,
 	installer->psp[0].dwSize = sizeof(PROPSHEETPAGEW);
 	installer->psp[0].dwFlags = PSP_USEHEADERTITLE;
 	installer->psp[0].hInstance = installer->instance;
-	installer->psp[0].pszHeaderTitle = L"Выбор программ";
+	installer->psp[0].pszHeaderTitle = MAKEINTRESOURCEW(IDS_SELECT_PROGRAMS);
 	installer->psp[0].pszTemplate = L"IDD_SELECT";
 	installer->psp[0].pfnDlgProc = select_page_proc;
 	installer->psp[0].lParam = (LPARAM)installer;
@@ -66,7 +66,7 @@ uint32_t run_installer(struct installer *installer, struct arena *perm,
 	installer->psp[1].dwSize = sizeof(PROPSHEETPAGEW);
 	installer->psp[1].dwFlags = PSP_USEHEADERTITLE;
 	installer->psp[1].hInstance = installer->instance;
-	installer->psp[1].pszHeaderTitle = L"Установка программ";
+	installer->psp[1].pszHeaderTitle = MAKEINTRESOURCEW(IDS_INSTALL_PROGRAMS);
 	installer->psp[1].pfnDlgProc = install_page_proc;
 	installer->psp[1].pszTemplate = L"IDD_PROCESS";
 	installer->psp[1].lParam = (LPARAM)installer;

@@ -16,6 +16,9 @@
 #define IDS_COMPLETE_ALL                    303
 #define IDS_GRP_DEFAULT                     304
 #define IDS_NAME                            305
+#define IDS_SELECT_PROGRAMS                 306
+#define IDS_INSTALL_PROGRAMS                307
+
 #define IDS_CMD_NULL                        400
 #define IDS_CMD_EXEC                        401
 #define IDS_CMD_CMD                         402
