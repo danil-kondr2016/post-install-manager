@@ -10,7 +10,7 @@ struct installer {
 	struct arena scratch;
 
 	PROPSHEETHEADERW psh;
-	PROPSHEETPAGEW psp[2];
+	PROPSHEETPAGEW psp[3];
 
 	HINSTANCE instance;
 	HIMAGELIST imglist;

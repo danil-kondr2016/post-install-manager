@@ -30,6 +30,7 @@ static void load_repository(struct installer *installer);
 static void mark_programs(struct installer *installer);
 static INT_PTR CALLBACK select_page_proc(HWND, UINT, WPARAM, LPARAM);
 static INT_PTR CALLBACK install_page_proc(HWND, UINT, WPARAM, LPARAM);
+static INT_PTR CALLBACK finish_page_proc(HWND, UINT, WPARAM, LPARAM);
 static DWORD WINAPI installer_thread(struct installer *installer);
 static void init_pimpath(struct installer *installer, struct arena *perm, 
 		struct arena scratch);
@@ -68,9 +69,16 @@ uint32_t run_installer(struct installer *installer, struct arena *perm,
 	installer->psp[1].pszTemplate = L"IDD_PROCESS";
 	installer->psp[1].lParam = (LPARAM)installer;
 
+	installer->psp[2].dwSize = sizeof(PROPSHEETPAGEW);
+	installer->psp[2].dwFlags = PSP_DEFAULT | PSP_HIDEHEADER;
+	installer->psp[2].hInstance = installer->instance;
+	installer->psp[2].pfnDlgProc = finish_page_proc;
+	installer->psp[2].pszTemplate = L"IDD_FINISH";
+	installer->psp[2].lParam = (LPARAM)installer;
+
 	installer->psh.dwSize = sizeof(PROPSHEETHEADERW);
 	installer->psh.dwFlags = PSH_WIZARD97 | PSH_PROPSHEETPAGE;
-	installer->psh.nPages = 2;
+	installer->psh.nPages = 3;
 	installer->psh.ppsp = installer->psp;
 
 	PropertySheetW(&installer->psh);
@@ -143,11 +151,7 @@ static INT_PTR CALLBACK install_page_proc(HWND hWnd, UINT msg, WPARAM wParam, LP
 		break;
 	case IPM_DONE:
 		installer = (struct installer *)GetWindowLongPtrW(hWnd, DWLP_USER);
-		LoadStringW(installer->instance, IDS_COMPLETE_ALL, buffer, 1024);
-		PropSheet_SetWizButtons(GetParent(hWnd), PSWIZB_FINISH);
-		SetDlgItemTextW(hWnd, IDC_STATUS, buffer);
-		SetDlgItemTextW(hWnd, IDC_INSTALLING, L"");
-		MessageBoxW(hWnd, buffer, L"", MB_ICONINFORMATION);
+		PropSheet_SetCurSel(GetParent(hWnd), NULL, 2);
 		break;
 	case IPM_ERROR:
 		installer = (struct installer *)GetWindowLongPtrW(hWnd, DWLP_USER);
@@ -169,6 +173,43 @@ static INT_PTR CALLBACK install_page_proc(HWND hWnd, UINT msg, WPARAM wParam, LP
 	return FALSE;
 
 }
+
+static INT_PTR CALLBACK finish_page_proc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	PROPSHEETPAGE *page;
+	struct installer *installer;
+	LPNMHDR lpnmhdr;
+	WCHAR buffer[1024];
+	HFONT font;
+
+	font = CreateFontW(-16, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, 
+			RUSSIAN_CHARSET, OUT_TT_PRECIS,
+			CLIP_DEFAULT_PRECIS,
+			DEFAULT_QUALITY,
+			DEFAULT_PITCH,
+			L"MS Shell Dlg 2");
+	if (!font) {
+		MessageBoxW(NULL, L"Failed to create new font", L"Error", MB_ICONHAND);
+	}
+
+	switch (msg) {
+	case WM_INITDIALOG:
+		SendDlgItemMessageW(hWnd, IDC_TITLE, WM_SETFONT, (WPARAM)font, TRUE);
+		break;
+	case WM_NOTIFY:
+		lpnmhdr = (LPNMHDR)lParam;
+		switch (lpnmhdr->code) {
+		case PSN_SETACTIVE:
+			PropSheet_SetWizButtons(GetParent(hWnd), PSWIZB_FINISH);
+			EnableWindow(GetDlgItem(GetParent(hWnd), IDCANCEL), FALSE);
+			break;
+		}
+		break;
+	}	
+	return FALSE;
+
+}
+
 
 static void create_group_0(struct installer *installer, struct arena scratch)
 {

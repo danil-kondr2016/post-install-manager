@@ -60,8 +60,17 @@ LANGUAGE LANG_ENGLISH, SUBLANG_DEFAULT
 
 // RT_DIALOG
 
+IDD_FINISH DIALOG 0, 0, 317, 193
+CAPTION "Post-Install Manager"
+STYLE DS_CENTER | DS_MODALFRAME | WS_POPUPWINDOW | WS_CAPTION
+FONT 9, "MS Shell Dlg"
+{
+    LTEXT "All programs have been installed successfully", IDC_TITLE, 115, 8, 195, 37
+    LTEXT "Press Finish button to exit.", -1, 115, 58, 195, 128
+}
+
 IDD_PROCESS DIALOG 0, 0, 317, 143
-CAPTION "Installation of programs"
+CAPTION "Post-Install Manager"
 STYLE DS_CENTER | DS_MODALFRAME | WS_POPUPWINDOW | WS_CAPTION
 FONT 9, "MS Shell Dlg"
 {
@@ -72,11 +81,11 @@ FONT 9, "MS Shell Dlg"
 }
 
 IDD_SELECT DIALOG 0, 0, 317, 143
-CAPTION "Selection of programs"
+CAPTION "Post-Install Manager"
 STYLE DS_CENTER | DS_MODALFRAME | WS_POPUPWINDOW | WS_CAPTION
 FONT 9, "MS Shell Dlg"
 {
-    CONTROL "", IDC_PROGLIST, "SysListView32", LVS_REPORT | LVS_ALIGNTOP | WS_BORDER, 21, 22, 276, 117
+    CONTROL "", IDC_PROGLIST, "SysListView32", LVS_REPORT | WS_BORDER, 21, 22, 276, 117
     LTEXT "Please select programs to be installed from list of available programs", -1, 21, 7, 275, 8
 }
 
@@ -96,6 +105,8 @@ STRINGTABLE
     IDS_COMPLETE, "Installation has completed successfully."
     IDS_ERROR, "An error occured during installation."
     IDS_COMPLETE_ALL, "All programs has been installed successfully."
+    IDS_GRP_DEFAULT, "Default"
+    IDS_NAME, "Name"
     IDS_CMD_NULL, "\t"
     IDS_CMD_EXEC, "\tExecute: %s %s"
     IDS_CMD_CMD, "\tExecute: %s"
@@ -108,8 +119,6 @@ STRINGTABLE
     IDS_CMD_RMFILE, "\tRemove %s"
     IDS_CMD_MOVE, "\tMove %s into %s"
     IDS_CMD_RENAME, "\tRemove %s to %s"
-    IDS_GRP_DEFAULT, "Default"
-    IDS_NAME, "Name"
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -121,8 +130,17 @@ LANGUAGE LANG_RUSSIAN, SUBLANG_DEFAULT
 
 // RT_DIALOG
 
+IDD_FINISH DIALOG 0, 0, 317, 193
+CAPTION "Менеджер послеустановки"
+STYLE DS_CENTER | DS_MODALFRAME | WS_POPUPWINDOW | WS_CAPTION
+FONT 9, "MS Shell Dlg"
+{
+    LTEXT "Установка всех программ завершена успешно", IDC_TITLE, 115, 8, 195, 37
+    LTEXT "Нажмите кнопку «Готово» для завершения.", -1, 115, 58, 195, 128
+}
+
 IDD_PROCESS DIALOG 0, 0, 317, 143
-CAPTION "Установка программ"
+CAPTION "Менеджер послеустановки"
 STYLE DS_CENTER | DS_MODALFRAME | WS_POPUPWINDOW | WS_CAPTION
 FONT 9, "MS Shell Dlg"
 {
@@ -133,7 +151,7 @@ FONT 9, "MS Shell Dlg"
 }
 
 IDD_SELECT DIALOG 0, 0, 317, 143
-CAPTION "Выбор программ"
+CAPTION "Менеджер послеустановки"
 STYLE DS_CENTER | DS_MODALFRAME | WS_POPUPWINDOW | WS_CAPTION
 FONT 9, "MS Shell Dlg"
 {
@@ -157,6 +175,8 @@ STRINGTABLE
     IDS_COMPLETE, "Установка завершена успешно."
     IDS_ERROR, "При установке произошла ошибка."
     IDS_COMPLETE_ALL, "Установка всех программ завершена успешно."
+    IDS_GRP_DEFAULT, "По умолчанию"
+    IDS_NAME, "Название"
     IDS_CMD_NULL, "\t"
     IDS_CMD_EXEC, "\tВыполнить: %s %s"
     IDS_CMD_CMD, "\tВыполнить: %s"
@@ -169,8 +189,6 @@ STRINGTABLE
     IDS_CMD_RMFILE, "\tУдалить %s"
     IDS_CMD_MOVE, "\tПереместить %s в %s"
     IDS_CMD_RENAME, "\tПереименовать %s в %s"
-    IDS_GRP_DEFAULT, "По умолчанию"
-    IDS_NAME, "Название"
 }
 
 //////////////////////////////////////////////////////////////////////////////

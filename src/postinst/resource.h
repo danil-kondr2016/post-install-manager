@@ -8,6 +8,7 @@
 #define IDC_INSTALLING                      102
 #define IDC_COMMANDS                        103
 #define IDC_STATUS                          104
+#define IDC_TITLE                           105
 
 #define IDS_INSTALLING                      300
 #define IDS_COMPLETE                        301
@@ -15,7 +16,6 @@
 #define IDS_COMPLETE_ALL                    303
 #define IDS_GRP_DEFAULT                     304
 #define IDS_NAME                            305
-
 #define IDS_CMD_NULL                        400
 #define IDS_CMD_EXEC                        401
 #define IDS_CMD_CMD                         402
@@ -28,7 +28,6 @@
 #define IDS_CMD_RMFILE                      409
 #define IDS_CMD_MOVE                        410
 #define IDS_CMD_RENAME                      411
-
 
 #ifdef APSTUDIO_INVOKED
     #ifndef APSTUDIO_READONLY_SYMBOLS
