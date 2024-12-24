@@ -60,6 +60,15 @@ LANGUAGE LANG_ENGLISH, SUBLANG_DEFAULT
 
 // RT_DIALOG
 
+IDD_FAIL DIALOG 0, 0, 317, 193
+CAPTION "Менеджер послеустановки"
+STYLE DS_CENTER | DS_MODALFRAME | WS_POPUPWINDOW | WS_CAPTION
+FONT 9, "MS Shell Dlg"
+{
+    LTEXT "Could not complete installation of programs", IDC_TITLE, 115, 8, 195, 37
+    LTEXT "An error occured during installation process. Press Finish button to exit.", -1, 115, 58, 195, 128
+}
+
 IDD_FINISH DIALOG 0, 0, 317, 193
 CAPTION "Post-Install Manager"
 STYLE DS_CENTER | DS_MODALFRAME | WS_POPUPWINDOW | WS_CAPTION
@@ -131,6 +140,15 @@ LANGUAGE LANG_RUSSIAN, SUBLANG_DEFAULT
 //////////////////////////////////////////////////////////////////////////////
 
 // RT_DIALOG
+
+IDD_FAIL DIALOG 0, 0, 317, 193
+CAPTION "Менеджер послеустановки"
+STYLE DS_CENTER | DS_MODALFRAME | WS_POPUPWINDOW | WS_CAPTION
+FONT 9, "MS Shell Dlg"
+{
+    LTEXT "Не удалось завершить установку программ", IDC_TITLE, 115, 8, 195, 37
+    LTEXT "В процессе установки произошла ошибка. Нажмите кнопку «Готово» для завершения.", -1, 115, 58, 195, 128
+}
 
 IDD_FINISH DIALOG 0, 0, 317, 193
 CAPTION "Менеджер послеустановки"

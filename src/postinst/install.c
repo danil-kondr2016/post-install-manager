@@ -78,9 +78,16 @@ uint32_t run_installer(struct installer *installer, struct arena *perm,
 	installer->psp[2].pszTemplate = L"IDD_FINISH";
 	installer->psp[2].lParam = (LPARAM)installer;
 
+	installer->psp[3].dwSize = sizeof(PROPSHEETPAGEW);
+	installer->psp[3].dwFlags = PSP_DEFAULT | PSP_HIDEHEADER;
+	installer->psp[3].hInstance = installer->instance;
+	installer->psp[3].pfnDlgProc = finish_page_proc;
+	installer->psp[3].pszTemplate = L"IDD_FAIL";
+	installer->psp[3].lParam = (LPARAM)installer;
+
 	installer->psh.dwSize = sizeof(PROPSHEETHEADERW);
 	installer->psh.dwFlags = PSH_WIZARD97 | PSH_PROPSHEETPAGE;
-	installer->psh.nPages = 3;
+	installer->psh.nPages = 4;
 	installer->psh.ppsp = installer->psp;
 
 	PropertySheetW(&installer->psh);
@@ -174,6 +181,8 @@ static INT_PTR CALLBACK install_page_proc(HWND hWnd, UINT msg, WPARAM wParam, LP
 		else if (result != PIM_ERROR_FAIL) {
 			error_msgW(hWnd, result);
 		}
+
+		PropSheet_SetCurSel(GetParent(hWnd), NULL, 3);
 		break;
 	}	
 	return FALSE;
