@@ -53,6 +53,8 @@ uint32_t run_installer(struct installer *installer, struct arena *perm,
 	if (NT_ERROR(result))
 		return result;
 
+	installer->taskbar_button_created = RegisterWindowMessageW(L"TaskbarButtonCreated");
+
 	installer->psp[0].dwSize = sizeof(PROPSHEETPAGEW);
 	installer->psp[0].dwFlags = PSP_USEHEADERTITLE;
 	installer->psp[0].hInstance = installer->instance;
@@ -90,12 +92,16 @@ static INT_PTR CALLBACK select_page_proc(HWND hWnd, UINT msg, WPARAM wParam, LPA
 	PROPSHEETPAGE *page;
 	struct installer *installer;
 	LPNMHDR lpnmhdr;
+	HRESULT hr;
 
 	switch (msg) {
 	case WM_INITDIALOG:
 		page = (PROPSHEETPAGE *)lParam;
 		installer = (struct installer *)page->lParam;
 		SetWindowLongPtrW(hWnd, DWLP_USER, (LONG_PTR)installer);
+		installer->dialog = GetParent(hWnd);
+		hr = CoCreateInstance(&CLSID_TaskbarList, NULL, CLSCTX_ALL, &IID_ITaskbarList3, (void *)&installer->taskbar);
+		if (FAILED(hr)) installer->taskbar = NULL;
 		installer->imglist = create_imglist_checkboxes(hWnd);
 		installer->software_list = GetDlgItem(hWnd, IDC_PROGLIST);
 		ListView_SetExtendedListViewStyle(installer->software_list, LVS_EX_CHECKBOXES);
@@ -525,6 +531,7 @@ static DWORD WINAPI installer_thread(struct installer *installer)
 	LoadStringW(installer->instance, IDS_INSTALLING, prog_text, prog_text_size + 1);
 	complete = load_string_resource(installer->instance, IDS_COMPLETE, &installer->scratch);
 	error = load_string_resource(installer->instance, IDS_ERROR, &installer->scratch);
+
 	for (struct program *prog = installer->repo.head;
 			prog;
 			prog = prog->next)
@@ -559,12 +566,23 @@ static DWORD WINAPI installer_thread(struct installer *installer)
 				result = STATUS_UNSUCCESSFUL;
 				SendMessageW(installer->command_memo, LB_ADDSTRING, 0, (LPARAM)error);
 				SendMessageW(installer->progress_bar, PBM_SETSTATE, PBST_ERROR, 0);
+				if (installer->taskbar)
+					installer->taskbar->lpVtbl->SetProgressState(
+							installer->taskbar,
+							installer->dialog,
+							TBPF_ERROR);
 				PostMessageW(installer->install_page, IPM_ERROR, 0, result);
 				return result;
 			}
 
 			pos = SendMessageW(installer->progress_bar, PBM_GETPOS, 0, 0);
 			SendMessageW(installer->progress_bar, PBM_SETPOS, pos+1, 0);
+			if (installer->taskbar)
+				installer->taskbar->lpVtbl->SetProgressValue(
+						installer->taskbar,
+						installer->dialog, 
+						pos + 1,
+						installer->cmd_count);
 		}	
 
 		SendMessageW(installer->command_memo, LB_ADDSTRING, 0, (LPARAM)complete);

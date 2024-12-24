@@ -11,8 +11,14 @@ int wWinMain(HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPWSTR szCmdLine,
 	struct arena perm, scratch;
 	struct installer installer = {0};
 	uint32_t result = 0;
+	HRESULT hresult;
 
 	InitCommonControls();
+	hresult = CoInitialize(NULL);
+	if (FAILED(hresult)) {
+		error_msgW(NULL, result | 0x10000000);
+		return 1;
+	}
 	LoadLibraryA("ntdll.dll");
 
 	perm = arena_create(8192<<10);
@@ -26,5 +32,6 @@ int wWinMain(HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPWSTR szCmdLine,
 		return 1;
 	}
 
+	CoUninitialize();
 	return 0;
 }

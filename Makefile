@@ -2,7 +2,7 @@
 
 CPPFLAGS=-Iinclude/ $(shell pkg-config --cflags expat)
 CFLAGS=-g
-LDFLAGS=$(shell pkg-config --libs expat) -lcomctl32 -luxtheme -lgdi32
+LDFLAGS=$(shell pkg-config --libs expat) -lcomctl32 -luxtheme -lgdi32 -lole32 -luuid
 WINDRES=windres
 
 OBJECTS=obj/cwalk/cwalk.o \

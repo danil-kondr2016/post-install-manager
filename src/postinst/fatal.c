@@ -31,6 +31,14 @@ void error_msgW(void *window, uint32_t result)
 			1024,
 			NULL);
 	}
+	else if ((result & 0x10000000)) {
+		FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM, NULL,
+			(result & ~0x10000000),
+			0,
+			buffer,
+			1024,
+			NULL);
+	}
 	else {
 		FormatMessageW(FORMAT_MESSAGE_FROM_HMODULE, hNtdll,
 			result,
