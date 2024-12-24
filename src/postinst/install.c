@@ -342,8 +342,8 @@ static HIMAGELIST create_imglist_checkboxes(HWND hWnd)
 {
 	RECT full = {0, 0, 48, 16};
 	static struct { int stateId; unsigned state; } data[] = {
-		{CBS_UNCHECKEDNORMAL, DFCS_BUTTONCHECK | DFCS_FLAT},
-		{CBS_CHECKEDNORMAL,   DFCS_BUTTONCHECK | DFCS_CHECKED | DFCS_FLAT},
+		{CBS_UNCHECKEDNORMAL, DFCS_BUTTONCHECK},
+		{CBS_CHECKEDNORMAL,   DFCS_BUTTONCHECK | DFCS_CHECKED},
 		{-1,0},
 	};
 
