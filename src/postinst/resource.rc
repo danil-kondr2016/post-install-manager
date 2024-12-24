@@ -108,6 +108,8 @@ STRINGTABLE
     IDS_CMD_RMFILE, "\tRemove %s"
     IDS_CMD_MOVE, "\tMove %s into %s"
     IDS_CMD_RENAME, "\tRemove %s to %s"
+    IDS_GRP_DEFAULT, "Default"
+    IDS_NAME, "Name"
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -167,6 +169,8 @@ STRINGTABLE
     IDS_CMD_RMFILE, "\tУдалить %s"
     IDS_CMD_MOVE, "\tПереместить %s в %s"
     IDS_CMD_RENAME, "\tПереименовать %s в %s"
+    IDS_GRP_DEFAULT, "По умолчанию"
+    IDS_NAME, "Название"
 }
 
 //////////////////////////////////////////////////////////////////////////////

@@ -147,7 +147,7 @@ static INT_PTR CALLBACK install_page_proc(HWND hWnd, UINT msg, WPARAM wParam, LP
 		PropSheet_SetWizButtons(GetParent(hWnd), PSWIZB_FINISH);
 		SetDlgItemTextW(hWnd, IDC_STATUS, buffer);
 		SetDlgItemTextW(hWnd, IDC_INSTALLING, L"");
-		MessageBoxW(hWnd, L"Установка завершена.", L"", MB_ICONINFORMATION);
+		MessageBoxW(hWnd, buffer, L"", MB_ICONINFORMATION);
 		break;
 	case IPM_ERROR:
 		installer = (struct installer *)GetWindowLongPtrW(hWnd, DWLP_USER);
@@ -172,13 +172,16 @@ static INT_PTR CALLBACK install_page_proc(HWND hWnd, UINT msg, WPARAM wParam, LP
 
 static void create_group_0(struct installer *installer, struct arena scratch)
 {
+	WCHAR header[256] = {0};
 	LVGROUP group = {0};
+
+	LoadString(installer->instance, IDS_GRP_DEFAULT, header, 256);
 
 	group.cbSize = sizeof(group);
 	group.mask = LVGF_HEADER | LVGF_GROUPID | LVGF_STATE;
 	group.state = group.stateMask = LVGS_NORMAL | LVGS_COLLAPSIBLE;
 	group.iGroupId = 0;
-	group.pszHeader = L"По умолчанию";
+	group.pszHeader = header;
 	group.cchHeader = wcslen(group.pszHeader);
 	ListView_InsertGroup(installer->software_list, -1, &group);
 }
@@ -218,8 +221,11 @@ static void load_repository(struct installer *installer)
 	load_groups(installer, installer->repo.categories, installer->scratch);
 	create_group_0(installer, installer->scratch);
 
+	WCHAR name_string[256];
+	LoadStringW(installer->instance, IDS_NAME, name_string, 256);
+
 	column.mask = LVCF_FMT | LVCF_TEXT | LVCF_WIDTH;
-	column.pszText = L"Название";
+	column.pszText = name_string;
 	column.cx = 200;
 	SendMessageW(installer->software_list, LVM_INSERTCOLUMNW, 0, (LPARAM)&column);
 	ListView_SetColumnWidth(installer->software_list, 1, LVSCW_AUTOSIZE);

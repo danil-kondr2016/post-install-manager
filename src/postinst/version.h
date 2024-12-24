@@ -3,7 +3,7 @@
 #define POSTINST_VERSION_MAJOR    0
 #define POSTINST_VERSION_MINOR    3
 #define POSTINST_VERSION_BUILD    66
-#define POSTINST_VERSION_REV      0
+#define POSTINST_VERSION_REV      1
 
 #ifndef RESOURCE_RC
 extern const char postinst_version[];
